@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -28,7 +29,8 @@ return new class extends Migration
             $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('verified_at')->nullable();
             $table->timestamps();
-            
+            $table->softDeletes();
+
             // Indexes
             $table->index(['landlord_id', 'status']);
             $table->index(['state', 'lga']);

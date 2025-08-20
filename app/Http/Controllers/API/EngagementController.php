@@ -74,7 +74,7 @@ class EngagementController extends Controller
             );
 
             // Initialize Paystack payment
-            $paymentData = $this->paymentService->initializePaystackPayment(
+            $paymentData = $this->paymentService->initializePayment(
                 $engagementFee,
                 $user->email,
                 $reference,
@@ -135,7 +135,7 @@ class EngagementController extends Controller
             }
 
             // Verify payment with Paystack
-            $paymentDetails = $this->paymentService->verifyPaystackPayment($request->reference);
+            $paymentDetails = $this->paymentService->verifyPayment($request->reference);
 
             if ($paymentDetails['status'] && $paymentDetails['data']['status'] === 'success') {
                 // Update engagement fee record

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Cloudinary\Api\Upload\UploadApi;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -16,11 +17,12 @@ class FileUploadService
     public function uploadToCloudinary(UploadedFile $file, string $folder = 'uploads'): array
     {
         try {
+
             // Generate unique filename
             $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-            
+
             // Upload to Cloudinary
-            $uploadedFileUrl = Cloudinary::upload($file->getRealPath(), [
+            $uploadedFileUrl = (new UploadApi())->upload($file->getRealPath(), [
                 'folder' => $folder,
                 'public_id' => pathinfo($filename, PATHINFO_FILENAME),
                 'resource_type' => 'auto',
@@ -28,7 +30,7 @@ class FileUploadService
                     'quality' => 'auto',
                     'fetch_format' => 'auto'
                 ]
-            ])->getSecurePath();
+            ]);
 
             Log::info('File uploaded to Cloudinary', [
                 'original_name' => $file->getClientOriginalName(),
@@ -38,12 +40,11 @@ class FileUploadService
 
             return [
                 'success' => true,
-                'url' => $uploadedFileUrl,
+                'url' => $uploadedFileUrl['url'],
                 'original_name' => $file->getClientOriginalName(),
                 'size' => $file->getSize(),
                 'type' => $file->getMimeType()
             ];
-
         } catch (\Exception $e) {
             Log::error('Cloudinary upload failed', [
                 'error' => $e->getMessage(),
@@ -71,7 +72,7 @@ class FileUploadService
             if ($file instanceof UploadedFile) {
                 $result = $this->uploadToCloudinary($file, $folder);
                 $results[] = $result;
-                
+
                 if ($result['success']) {
                     $successCount++;
                 } else {
@@ -110,7 +111,7 @@ class FileUploadService
 
             // Generate unique filename
             $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-            
+
             // Upload to Cloudinary with transformations
             $uploadedFileUrl = Cloudinary::upload($file->getRealPath(), [
                 'folder' => $folder,
@@ -134,7 +135,6 @@ class FileUploadService
                 'type' => $file->getMimeType(),
                 'transformations' => $transformations
             ];
-
         } catch (\Exception $e) {
             Log::error('Cloudinary image upload failed', [
                 'error' => $e->getMessage(),
@@ -157,7 +157,7 @@ class FileUploadService
         try {
             // Generate unique filename
             $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-            
+
             // Store file
             $path = $file->storeAs($folder, $filename, 'public');
             $url = Storage::url($path);
@@ -176,7 +176,6 @@ class FileUploadService
                 'size' => $file->getSize(),
                 'type' => $file->getMimeType()
             ];
-
         } catch (\Exception $e) {
             Log::error('Local upload failed', [
                 'error' => $e->getMessage(),
@@ -198,7 +197,7 @@ class FileUploadService
     {
         // Try Cloudinary first
         $cloudinaryResult = $this->uploadToCloudinary($file, $folder);
-        
+
         if ($cloudinaryResult['success']) {
             return $cloudinaryResult;
         }
@@ -228,7 +227,6 @@ class FileUploadService
                 'success' => true,
                 'result' => $result
             ];
-
         } catch (\Exception $e) {
             Log::error('Cloudinary deletion failed', [
                 'error' => $e->getMessage(),
@@ -250,9 +248,9 @@ class FileUploadService
         try {
             if (Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
-                
+
                 Log::info('File deleted from local storage', ['path' => $path]);
-                
+
                 return [
                     'success' => true,
                     'message' => 'File deleted successfully'
@@ -263,7 +261,6 @@ class FileUploadService
                 'success' => false,
                 'error' => 'File not found'
             ];
-
         } catch (\Exception $e) {
             Log::error('Local file deletion failed', [
                 'error' => $e->getMessage(),
@@ -307,7 +304,6 @@ class FileUploadService
                 'type' => 'external',
                 'url' => $url
             ];
-
         } catch (\Exception $e) {
             return [
                 'type' => 'unknown',
@@ -325,7 +321,7 @@ class FileUploadService
         // Extract public ID from Cloudinary URL
         $parts = parse_url($url);
         $pathParts = explode('/', $parts['path']);
-        
+
         // Find the upload index
         $uploadIndex = array_search('upload', $pathParts);
         if ($uploadIndex !== false && isset($pathParts[$uploadIndex + 2])) {

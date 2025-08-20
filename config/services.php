@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+     'paystack' => [
+        'secret_key' => env('PAYSTACK_SECRET', ''),
+        'public_key' => env('PAYSTACK_PUBLIC', '')
+    ],
 ];

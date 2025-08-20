@@ -22,6 +22,14 @@ class AuthController extends Controller
         $this->notificationService = $notificationService;
     }
 
+    /**
+     * Register a new user.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Validation\ValidationException
+     * @throws \Exception
+     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -354,15 +362,14 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        $user = $request->user();
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $request->user()->load([
+                'user' => $user->load([
                     'profile',
-                    'unreadNotificationsCount' => function($query) {
-                        $query->where('is_read', false);
-                    }
-                ])
+                ]),
+                'unreadNotificationsCount' => $user->unreadNotificationsCount
             ]
         ]);
     }

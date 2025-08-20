@@ -70,7 +70,6 @@ class PropertyController extends Controller
                 'success' => true,
                 'data' => $properties
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -80,7 +79,7 @@ class PropertyController extends Controller
         }
     }
 
-    public function show($id, Request $request)
+    public function show(Request $request, $id)
     {
         try {
             $property = Property::with([
@@ -93,9 +92,9 @@ class PropertyController extends Controller
             // Check if user has paid engagement fee to see contact details
             $showContactDetails = false;
             if ($request->user()) {
-                $showContactDetails = $property->hasUserPaidEngagementFee($request->user()->id) || 
-                                    $request->user()->id === $property->landlord_id ||
-                                    $request->user()->isAdmin();
+                $showContactDetails = $property->hasUserPaidEngagementFee($request->user()->id) ||
+                    $request->user()->id === $property->landlord_id ||
+                    $request->user()->isAdmin();
             }
 
             // Hide contact details if engagement fee not paid
@@ -118,7 +117,6 @@ class PropertyController extends Controller
                 'success' => true,
                 'data' => ['property' => $property]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -142,7 +140,7 @@ class PropertyController extends Controller
             'latitude' => 'nullable|numeric|between:-90,90',
             'facilities' => 'nullable|array',
             'facilities.*' => 'string',
-            'images' => 'required|array|min:5|max:10',
+            'images' => 'required|array|min:1|max:10',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
             'videos' => 'nullable|array|max:3',
             'videos.*' => 'file|mimes:mp4,mov,avi|max:10240' // 10MB max
@@ -156,8 +154,17 @@ class PropertyController extends Controller
             ], 422);
         }
 
+
         try {
             $user = $request->user();
+
+            if (!$user->isLandlord()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not a landlord!',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
             // Create property
             $property = Property::create([
@@ -177,7 +184,7 @@ class PropertyController extends Controller
             // Upload images
             foreach ($request->file('images') as $index => $image) {
                 $upload = $this->fileUploadService->uploadToCloudinary($image, 'properties/images');
-                
+
                 if ($upload['success']) {
                     PropertyMedia::create([
                         'property_id' => $property->id,
@@ -193,7 +200,7 @@ class PropertyController extends Controller
             if ($request->hasfile('videos')) {
                 foreach ($request->file('videos') as $video) {
                     $upload = $this->fileUploadService->uploadToCloudinary($video, 'properties/videos');
-                    
+
                     if ($upload['success']) {
                         PropertyMedia::create([
                             'property_id' => $property->id,
@@ -221,7 +228,6 @@ class PropertyController extends Controller
                 'message' => 'Property created successfully',
                 'data' => ['property' => $property->load('media')]
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -231,7 +237,7 @@ class PropertyController extends Controller
         }
     }
 
-    public function update($id, Request $request)
+    public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|string|max:255',
@@ -270,9 +276,17 @@ class PropertyController extends Controller
 
             $oldData = $property->toArray();
             $property->update($request->only([
-                'title', 'description', 'property_type', 'rent_amount',
-                'location_address', 'state', 'lga', 'longitude', 'latitude',
-                'facilities', 'status'
+                'title',
+                'description',
+                'property_type',
+                'rent_amount',
+                'location_address',
+                'state',
+                'lga',
+                'longitude',
+                'latitude',
+                'facilities',
+                'status'
             ]));
 
             // Log property update
@@ -283,7 +297,6 @@ class PropertyController extends Controller
                 'message' => 'Property updated successfully',
                 'data' => ['property' => $property->fresh()->load('media')]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -293,7 +306,7 @@ class PropertyController extends Controller
         }
     }
 
-    public function destroy($id, Request $request)
+    public function destroy(Request $request, $id)
     {
         try {
             $property = Property::findOrFail($id);
@@ -331,7 +344,6 @@ class PropertyController extends Controller
                 'success' => true,
                 'message' => 'Property deleted successfully'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -363,7 +375,6 @@ class PropertyController extends Controller
                 'success' => true,
                 'data' => $properties
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -450,7 +461,6 @@ class PropertyController extends Controller
                 'message' => 'Media uploaded successfully',
                 'data' => ['media' => $media]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -492,7 +502,6 @@ class PropertyController extends Controller
                 'success' => true,
                 'message' => 'Media removed successfully'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -527,7 +536,6 @@ class PropertyController extends Controller
                 'message' => "Property status changed to {$newStatus}",
                 'data' => ['property' => $property->fresh()]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -552,7 +560,6 @@ class PropertyController extends Controller
                 'message' => $message,
                 'data' => ['is_favorited' => $isFavorited]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -577,7 +584,6 @@ class PropertyController extends Controller
                 'success' => true,
                 'data' => $favorites
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
