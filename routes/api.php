@@ -31,7 +31,7 @@ Route::middleware(['auth:sanctum'])->prefix('profile')->group(function () {
 });
 
 Route::middleware(['auth:sanctum'])->prefix('listing')->group(function () {
-    Route::resource('/', PropertyController::class);
+    Route::resource('properties', PropertyController::class);
     Route::get('/my-listings', [PropertyController::class, 'myListings']);
     Route::post('/upload-media/{id}', [PropertyController::class, 'uploadMedia']);
     Route::delete('/remove-media/{id}', [PropertyController::class, 'removeMedia']);
