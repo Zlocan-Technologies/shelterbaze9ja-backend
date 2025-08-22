@@ -14,8 +14,7 @@ class PaymentService implements IPayment
 
     private $baseUrl;
     private $secretKey;
-    // private $fundWalletCallbackUrl = "/api/v1/callback/paystack/";
-    private $fundBookingCallbackUrl = "/api/v1/callback/paystack/booking/";
+    private $callbackUrl;
 
     public function __construct()
     {
@@ -29,9 +28,19 @@ class PaymentService implements IPayment
         $this->secretKey = config('services.paystack.secret_key');
     }
 
+    public function setCallbackUrl($url)
+    {
+        $this->callbackUrl = $url;
+    }
+
+    public function getCallbackUrl()
+    {
+        return $this->callbackUrl;
+    }
+
     public function setBaseUrl()
     {
-        $this->baseUrl = 'https://api.paystack.co/';
+        $this->baseUrl = config('services.paystack.base_url', 'https://api.paystack.co/');
     }
 
     // public function fundWalletCallBack($user_id)
@@ -48,13 +57,13 @@ class PaymentService implements IPayment
 
 
     //initiate transaction and get checkout url
-    public function initializePayment(float $amount, string $email, string $reference, array $metadata = [], string $callback = "")
+    public function initializePayment(float $amount, string $email, string $reference, array $metadata = [])
     {
         $url = $this->baseUrl . 'transaction/initialize';
         $response = Http::acceptJson()->withToken($this->secretKey)->post($url, [
             'email' => $email,
             'amount' => (int)$amount * 100,
-            'callback_url' => $callback,
+            'callback_url' => $this->getCallbackUrl(),
             'channels' => [
                 'card',
                 // 'bank',
