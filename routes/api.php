@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\ChatController;
+use App\Http\Controllers\API\EngagementController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\PropertyController;
@@ -18,6 +19,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/email/resend-verification', [AuthController::class, 'resendVerificationEmail']);
     Route::post('/email/change', [AuthController::class, 'changeEmail']);
     Route::post('/password/change', [AuthController::class, 'changePassword']);
+});
+
+Route::prefix('engagement')->group(function () {
+    Route::post('/initialize', [EngagementController::class, 'initiatePayment'])->middleware('auth:sanctum');
+    Route::get('/verify/{reference}', [EngagementController::class, 'verifyPayment'])->name('engagement.verify');
+    Route::get('/contact/{propertyId}', [EngagementController::class, 'getPropertyContact'])->middleware('auth:sanctum');
 });
 
 Route::middleware(['auth:sanctum'])->prefix('auth')->group(function () {

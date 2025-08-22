@@ -74,6 +74,7 @@ class EngagementController extends Controller
             );
 
             // Initialize Paystack payment
+            $this->paymentService->setCallbackUrl(route('engagement.verify', ['reference' => $reference]));
             $paymentData = $this->paymentService->initializePayment(
                 $engagementFee,
                 $user->email,
@@ -93,7 +94,7 @@ class EngagementController extends Controller
                 'success' => true,
                 'message' => 'Payment initialized successfully',
                 'data' => [
-                    'payment_url' => $paymentData['authorizationUrl'],
+                    'payment_url' => $paymentData['data']['authorization_url'] ?? '',
                     'reference' => $reference,
                     'amount' => $engagementFee,
                     'property' => $property->only(['id', 'title'])
