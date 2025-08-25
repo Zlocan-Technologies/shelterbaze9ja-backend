@@ -33,7 +33,7 @@ class AuditLog extends Model
     // Helper methods
     public static function log($action, $model = null, $oldValues = null, $newValues = null)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         
         return self::create([
             'user_id' => $user ? $user->id : null,

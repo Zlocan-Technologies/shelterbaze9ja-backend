@@ -3,9 +3,18 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\CreateProfileRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\InitiateCreateProfileRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Otp\VerifyOtpRequest;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Services\Auth\AuthService;
 use App\Services\NotificationService;
+use App\Util\ApiResponse;
+use App\Util\ResponseHandler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -17,10 +26,17 @@ class AuthController extends Controller
 {
     private $notificationService;
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationService $notificationService, protected AuthService $authService)
     {
         $this->notificationService = $notificationService;
     }
+
+
+    public function sendOnboardingOtp(InitiateCreateProfileRequest $request)
+    {
+        return (new ResponseHandler())->execute(fn() => $this->authService->sendOnboardingOtp($request));
+    }
+
 
     /**
      * Register a new user.
@@ -30,150 +46,25 @@ class AuthController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      * @throws \Exception
      */
-    public function register(Request $request)
+    public function register(CreateProfileRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'phone_number' => 'required|string|unique:users|regex:/^\+234[0-9]{10}$/',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:user,landlord,agent'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $user = User::create([
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email,
-                'phone_number' => $request->phone_number,
-                'password' => $request->password, // Mutator handles hashing
-                'role' => $request->role,
-            ]);
-
-            // Create user profile
-            $user->profile()->create();
-
-            // Log the registration
-            AuditLog::log('user_registered', $user);
-
-            // Send welcome email
-            $this->notificationService->sendEmail(
-                $user->email,
-                'Welcome to Shelterbaze',
-                'Welcome to Shelterbaze! Please verify your email and complete your profile to get started.'
-            );
-
-            // Create notification
-            $this->notificationService->createInAppNotification(
-                $user->id,
-                'Welcome to Shelterbaze!',
-                'Please complete your profile verification to access all features.',
-                'info'
-            );
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'User registered successfully',
-                'data' => [
-                    'user' => $user->load('profile'),
-                    'token' => $token
-                ]
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Registration failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->execute(fn()  => $this->authService->register($request));
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid login credentials'
-            ], 401);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        // Check if account is active
-        if (!$user->isActive()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account is not active. Please contact support.',
-                'data' => ['account_status' => $user->account_status]
-            ], 423);
-        }
-
-        // Log the login
-        AuditLog::log('user_login', $user);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'user' => $user->load('profile'),
-                'token' => $token
-            ]
-        ]);
+        return (new ResponseHandler())->execute(fn()  => $this->authService->login($request));
     }
 
     public function logout(Request $request)
     {
-        try {
-            // Log the logout
-            AuditLog::log('user_logout', $request->user());
-
-            $request->user()->currentAccessToken()->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Logged out successfully'
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Logout failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->execute(fn()  => $this->authService->logout($request));
     }
 
     public function sendPhoneVerification(Request $request)
     {
         $user = $request->user();
-        
+
         if ($user->phone_verified_at) {
             return response()->json([
                 'success' => false,
@@ -183,7 +74,7 @@ class AuthController extends Controller
 
         try {
             $verificationCode = rand(100000, 999999);
-            
+
             // Store verification code (you might want to use cache or database)
             cache(['phone_verification_' . $user->id => $verificationCode], now()->addMinutes(10));
 
@@ -204,7 +95,6 @@ class AuthController extends Controller
                 'success' => true,
                 'message' => 'Verification code sent successfully'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -240,7 +130,7 @@ class AuthController extends Controller
 
         try {
             $user->update(['phone_verified_at' => now()]);
-            
+
             // Clear the verification code
             cache()->forget('phone_verification_' . $user->id);
 
@@ -260,7 +150,6 @@ class AuthController extends Controller
                 'message' => 'Phone number verified successfully',
                 'data' => ['user' => $user->fresh()]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -270,133 +159,23 @@ class AuthController extends Controller
         }
     }
 
-    public function forgotPassword(Request $request)
+    public function forgotPassword(ForgotPasswordRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $status = Password::sendResetLink($request->only('email'));
-
-            if ($status === Password::RESET_LINK_SENT) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Password reset link sent to your email'
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send reset link'
-            ], 500);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Password reset failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->execute(fn() => $this->authService->forgotPassword($request));
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(ResetPasswordRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $status = Password::reset(
-                $request->only('email', 'password', 'password_confirmation', 'token'),
-                function ($user, $password) {
-                    $user->forceFill([
-                        'password' => $password
-                    ])->setRememberToken(Str::random(60));
-
-                    $user->save();
-
-                    // Log password reset
-                    AuditLog::log('password_reset', $user);
-                }
-            );
-
-            if ($status === Password::PASSWORD_RESET) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Password reset successfully'
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Password reset failed'
-            ], 500);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Password reset failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+       return (new ResponseHandler())->execute(fn () => $this->authService->resetPassword($request));
     }
 
     public function me(Request $request)
     {
-        $user = $request->user();
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => $user->load([
-                    'profile',
-                ]),
-                'unreadNotificationsCount' => $user->unreadNotificationsCount
-            ]
-        ]);
+        return (new ResponseHandler())->execute(fn()  => $this->authService->getUserProfile($request));
     }
 
     public function refreshToken(Request $request)
     {
-        try {
-            $user = $request->user();
-            
-            // Revoke current token
-            $request->user()->currentAccessToken()->delete();
-            
-            // Create new token
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Token refreshed successfully',
-                'data' => ['token' => $token]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token refresh failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->execute(fn()  => $this->authService->refreshToken($request));
     }
 }

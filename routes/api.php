@@ -10,34 +10,32 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::prefix('auth')->group(function () {
+    Route::post('/send-onboarding-otp', [AuthController::class, 'sendOnboardingOtp']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-    Route::patch('/user/update', [AuthController::class, 'updateUser']);
     Route::post('/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/password/forgot', [AuthController::class, 'forgotPassword']);
-    Route::post('/email/verify', [AuthController::class, 'verifyEmail']);
-    Route::post('/email/resend-verification', [AuthController::class, 'resendVerificationEmail']);
-    Route::post('/email/change', [AuthController::class, 'changeEmail']);
-    Route::post('/password/change', [AuthController::class, 'changePassword']);
 });
 
 Route::prefix('engagement')->group(function () {
-    Route::post('/initialize', [EngagementController::class, 'initiatePayment'])->middleware('auth:sanctum');
+    Route::post('/initialize', [EngagementController::class, 'initiatePayment'])->middleware(['auth:sanctum', 'verified']);
     Route::get('/verify/{reference}', [EngagementController::class, 'verifyPayment'])->name('engagement.verify');
-    Route::get('/contact/{propertyId}', [EngagementController::class, 'getPropertyContact'])->middleware('auth:sanctum');
+    Route::get('/contact/{propertyId}', [EngagementController::class, 'getPropertyContact'])->middleware(['auth:sanctum', 'verified']);
+    Route::get('/my-engagements', [EngagementController::class, 'myEngagements'])->middleware(['auth:sanctum', 'verified']);
+    Route::get('/interested-tenants/{propertyId}', [EngagementController::class, 'getInterestedTenants'])->middleware(['auth:sanctum', 'verified']);
 });
 
-Route::middleware(['auth:sanctum'])->prefix('auth')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->prefix('auth')->group(function () {
     Route::post('/refreshToken', [AuthController::class, 'refreshToken']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::middleware(['auth:sanctum'])->prefix('profile')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->prefix('profile')->group(function () {
     Route::post('/complete-profile', [ProfileController::class, 'completeProfile']);
     Route::get('/me', [AuthController::class, 'me']);
 });
 
-Route::middleware(['auth:sanctum'])->prefix('listing')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->prefix('listing')->group(function () {
     Route::resource('properties', PropertyController::class);
     Route::get('/my-listings', [PropertyController::class, 'myListings']);
     Route::post('/upload-media/{id}', [PropertyController::class, 'uploadMedia']);
@@ -47,7 +45,7 @@ Route::middleware(['auth:sanctum'])->prefix('listing')->group(function () {
     Route::get('/favorites', [PropertyController::class, 'getFavorites']);
 });
 
-Route::middleware(['auth:sanctum'])->prefix('notifications')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->prefix('notifications')->group(function () {
     // User routes
     Route::get('/', [NotificationController::class, 'index']);
     Route::get('/unread-count', [NotificationController::class, 'getUnreadCount']);
@@ -68,7 +66,7 @@ Route::middleware(['auth:sanctum'])->prefix('notifications')->group(function () 
     Route::post('/role', [NotificationController::class, 'sendToRole']);
 });
 
-Route::middleware(['auth:sanctum'])->prefix('chat')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->prefix('chat')->group(function () {
     Route::get('/conversations', [ChatController::class, 'getConversations']);
     Route::get('/conversations/{id}', [ChatController::class, 'getConversation']);
     Route::post('/conversations/start', [ChatController::class, 'startConversation']);

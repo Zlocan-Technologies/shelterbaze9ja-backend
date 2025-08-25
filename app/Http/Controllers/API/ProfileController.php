@@ -3,23 +3,25 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Profile\CompleteProfileRequest;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\AuditLog;
+use App\Repositories\ProfileRepository;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
+use App\Util\ResponseHandler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
-    private $fileUploadService;
-    private $notificationService;
 
-    public function __construct(FileUploadService $fileUploadService, NotificationService $notificationService)
+    public function __construct(
+        private FileUploadService $fileUploadService, 
+        private NotificationService $notificationService,
+        private ProfileRepository $profileRepository)
     {
-        $this->fileUploadService = $fileUploadService;
-        $this->notificationService = $notificationService;
     }
 
     public function show(Request $request)
@@ -77,96 +79,9 @@ class ProfileController extends Controller
         }
     }
 
-    public function completeProfile(Request $request)
+    public function completeProfile(CompleteProfileRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nin_number' => 'required|string|size:11|unique:user_profiles',
-            'nin_selfie' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'address' => 'required|string',
-            'state' => 'required|string',
-            'lga' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $user = $request->user();
-
-            if ($user->profile_completed) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Profile already completed'
-                ], 400);
-            }
-
-            // Upload NIN selfie
-            $ninSelfieUpload = $this->fileUploadService->uploadToCloudinary(
-                $request->file('nin_selfie'),
-                'profiles/nin_selfies'
-            );
-
-            if (!$ninSelfieUpload['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to upload NIN selfie',
-                    'error' => $ninSelfieUpload['error']
-                ], 500);
-            }
-
-            // Update user profile
-            $user->profile()->update([
-                'nin_number' => $request->nin_number,
-                'nin_selfie_url' => $ninSelfieUpload['url'],
-                'address' => $request->address,
-                'state' => $request->state,
-                'lga' => $request->lga,
-            ]);
-
-            // Generate agent ID if user is agent
-            if ($user->isAgent()) {
-                $user->profile->generateAgentId();
-            }
-
-            // Mark profile as completed
-            $user->update(['profile_completed' => true]);
-
-            // Log profile completion
-            AuditLog::log('profile_completed', $user);
-
-            // Create notification
-            $this->notificationService->createInAppNotification(
-                $user->id,
-                'Profile Completed',
-                'Your profile has been completed and is under review.',
-                'success'
-            );
-
-            // Send email notification to admin for review
-            $this->notificationService->sendEmail(
-                config('mail.admin_email', 'admin@shelterbaze.com'),
-                'New Profile Verification Required',
-                "User {$user->full_name} ({$user->email}) has completed their profile and requires verification."
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Profile completed successfully. Your account is now under review.',
-                'data' => ['user' => $user->fresh()->load('profile')]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Profile completion failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+       return (new ResponseHandler())->execute(fn() => $this->profileRepository->completeProfile($request));
     }
 
     public function uploadDocument(Request $request)
