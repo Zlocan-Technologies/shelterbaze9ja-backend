@@ -122,10 +122,11 @@ class AuthService implements IAuthService
     {
 
         if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid login credentials'
-            ], 401);
+            return ApiResponse::respond(
+                message: 'Invalid login credentials',
+                status: false,
+                statusCode: 401
+            );
         }
 
         $user = User::where('email', $request->email)->first();

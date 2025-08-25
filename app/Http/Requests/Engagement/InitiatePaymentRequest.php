@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Engatement;
+namespace App\Http\Requests\Engagement;
 
 use App\Http\Requests\BaseFormRequest;
 

@@ -73,6 +73,6 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('chat')->group(function 
     Route::patch('/conversations/{id}', [ChatController::class, 'updateConversation']);
     Route::patch('/conversations/{id}/close', [ChatController::class, 'closeConversation']);
     Route::patch('/conversations/{id}/reopen', [ChatController::class, 'reopenConversation']);
-    Route::get('/conversations/stats', [ChatController::class, 'getConversationsStats']);
+    Route::get('/stats', [ChatController::class, 'getConversationsStats'])->name('chat.stats');
     Route::get('/search', [ChatController::class, 'searchConversations']);
 });

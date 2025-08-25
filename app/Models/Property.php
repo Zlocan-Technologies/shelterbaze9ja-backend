@@ -26,6 +26,8 @@ class Property extends Model
         'deleted_at' => 'datetime'
     ];
 
+    protected $appends = ['primary_image'];
+
     // Constants
     const STATUS_OPEN = 'open';
     const STATUS_CLOSED = 'closed';

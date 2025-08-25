@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Http\Requests\Engatement\InitiatePaymentRequest;
-use App\Http\Requests\Engatement\VerifyPaymentRequest;
+use App\Http\Requests\Engagement\InitiatePaymentRequest;
+use App\Http\Requests\Engagement\VerifyPaymentRequest;
 use App\Models\AuditLog;
 use App\Models\EngagementFee;
 use App\Models\Property;
