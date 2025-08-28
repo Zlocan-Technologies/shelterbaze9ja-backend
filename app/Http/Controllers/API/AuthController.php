@@ -178,4 +178,9 @@ class AuthController extends Controller
     {
         return (new ResponseHandler())->execute(fn()  => $this->authService->refreshToken($request));
     }
+
+    public function updateFcmToken(Request $request)
+    {
+        return (new ResponseHandler())->execute(fn()  => $this->authService->updateFcmToken($request));
+    }
 }

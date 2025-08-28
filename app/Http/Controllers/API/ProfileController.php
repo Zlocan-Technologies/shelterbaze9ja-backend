@@ -12,6 +12,7 @@ use App\Services\FileUploadService;
 use App\Services\NotificationService;
 use App\Util\ResponseHandler;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller

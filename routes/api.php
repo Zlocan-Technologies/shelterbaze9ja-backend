@@ -6,6 +6,7 @@ use App\Http\Controllers\API\EngagementController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\PropertyController;
+use App\Http\Controllers\API\RentPaymentController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -33,6 +34,7 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('auth')->group(function 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('profile')->group(function () {
     Route::post('/complete-profile', [ProfileController::class, 'completeProfile']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/update-fcm-token', [AuthController::class, 'updateFcmToken']);
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('listing')->group(function () {
@@ -43,6 +45,24 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('listing')->group(functi
     Route::post('/toggle-status/{id}', [PropertyController::class, 'toggleStatus']);
     Route::post('/toggle-favorite/{id}', [PropertyController::class, 'toggleFavorite']);
     Route::get('/favorites', [PropertyController::class, 'getFavorites']);
+});
+
+Route::middleware(['auth:sanctum', 'verified'])->prefix('rent')->group(function () {
+    Route::post('/generate-invoice', [RentPaymentController::class, 'generateInvoice']); //done
+    Route::post('/upload-payment-proof', [RentPaymentController::class, 'uploadPaymentProof']); //ddone
+    Route::get('/payment-history', [RentPaymentController::class, 'getPaymentHistory']); //done
+    Route::get('/my-apartments', [RentPaymentController::class, 'getMyApartments']); //done
+    Route::get('/bank-details', [RentPaymentController::class, 'getBankDetails']); //done
+    Route::get('/payment-summary', [RentPaymentController::class, 'getPaymentSummary']); //done
+    Route::post('/renewal', [RentPaymentController::class, 'requestRenewal']);
+    Route::post('/report-issue', [RentPaymentController::class, 'reportIssue']);
+    Route::post('/early-termination', [RentPaymentController::class, 'requestEarlyTermination']); //done
+    Route::post('/cancel-rental/{id}', [RentPaymentController::class, 'cancelRentalRequest']); // done
+    Route::get('/rental-details/{id}', [RentPaymentController::class, 'getRentalDetails']); //dome
+    Route::get('/rental-agreement/{id}', [RentPaymentController::class, 'getRentalAgreement']); //done
+    Route::get('/payment-receipt/{id}', [RentPaymentController::class, 'getPaymentReceipt']); //done
+    Route::get('/export-rental-data', [RentPaymentController::class, 'exportRentalData']); //done
+    Route::get('/insights', [RentPaymentController::class, 'getRentalInsights']); // done
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('notifications')->group(function () {

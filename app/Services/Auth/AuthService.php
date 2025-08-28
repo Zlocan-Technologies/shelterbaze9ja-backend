@@ -120,7 +120,6 @@ class AuthService implements IAuthService
 
     public function login(LoginRequest $request)
     {
-
         if (!Auth::attempt($request->only('email', 'password'))) {
             return ApiResponse::respond(
                 message: 'Invalid login credentials',
@@ -229,5 +228,21 @@ class AuthService implements IAuthService
         // Log password reset
         AuditLog::log('password_reset', $user);
         return ApiResponse::respond(data: null, message: "Password reset successfully, you can login now!", statusCode: 200, status: true);
+    }
+
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $user->fcm_token = $request->fcm_token;
+        $user->save();
+
+        return ApiResponse::respond(
+            data: $user->fresh(),
+            message: 'FCM token updated successfully',
+        );
     }
 }
