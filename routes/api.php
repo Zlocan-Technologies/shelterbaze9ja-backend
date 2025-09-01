@@ -7,6 +7,7 @@ use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\PropertyController;
 use App\Http\Controllers\API\RentPaymentController;
+use App\Http\Controllers\API\RentSavingsController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -16,6 +17,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/password/forgot', [AuthController::class, 'forgotPassword']);
+});
+
+Route::prefix('/savings')->group(function () {
+    Route::get('verify/{reference}', [RentSavingsController::class, 'verifyDeposit'])->name('rent_saving.verify');
 });
 
 Route::prefix('engagement')->group(function () {
@@ -45,6 +50,7 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('listing')->group(functi
     Route::post('/toggle-status/{id}', [PropertyController::class, 'toggleStatus']);
     Route::post('/toggle-favorite/{id}', [PropertyController::class, 'toggleFavorite']);
     Route::get('/favorites', [PropertyController::class, 'getFavorites']);
+    Route::get('/booked-apartments', [PropertyController::class, 'getBookedApartments']);
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('rent')->group(function () {
@@ -95,4 +101,23 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('chat')->group(function 
     Route::patch('/conversations/{id}/reopen', [ChatController::class, 'reopenConversation']);
     Route::get('/stats', [ChatController::class, 'getConversationsStats'])->name('chat.stats');
     Route::get('/search', [ChatController::class, 'searchConversations']);
+});
+
+Route::middleware(['auth:sanctum', 'verified'])->prefix('savings')->group(function () {
+    Route::get('/', [RentSavingsController::class, 'index']); // done
+    Route::post('/', [RentSavingsController::class, 'store']); // done
+    Route::get('/{id}', [RentSavingsController::class, 'show']); // done
+    Route::patch('/{id}', [RentSavingsController::class, 'update']); //done
+});
+
+Route::middleware(['auth:sanctum', 'verified'])->prefix('savings-mgt')->group(function () {
+    Route::post('/deposit', [RentSavingsController::class, 'deposit']); // done
+    Route::get('/verify-deposit', [RentSavingsController::class, 'verifyDeposit']); // done
+    Route::post('/withdraw', [RentSavingsController::class, 'withdraw']); 
+    Route::get('/transaction-history/{savingsId}', [RentSavingsController::class, 'getTransactionHistory']); // done
+    Route::get('/dashboard', [RentSavingsController::class, 'dashboard']); // done
+    Route::post('/cancel-plan/{id}', [RentSavingsController::class, 'cancelPlan']);
+    Route::post('/pause-plan/{id}', [RentSavingsController::class, 'pausePlan']);
+    Route::post('/resume-plan/{id}', [RentSavingsController::class, 'resumePlan']);
+    Route::get('/insights', [RentSavingsController::class, 'getInsights']); // sonw
 });

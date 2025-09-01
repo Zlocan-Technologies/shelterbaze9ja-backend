@@ -71,4 +71,9 @@ class PropertyController extends Controller
     {
         return (new ResponseHandler())->execute(fn() => $this->propertyRepository->getUserFavoriteProperties($request));
     }
+
+    public function getBookedApartments(Request $request)
+    {
+        return (new ResponseHandler())->execute(fn() => $this->propertyRepository->getBookedApartments($request));
+    }
 }

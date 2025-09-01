@@ -197,7 +197,7 @@ class RentPaymentRepository
             $property = Property::with(['landlord', 'agent'])->findOrFail($request->property_id);
 
             $startDate = Carbon::parse($request->start_date);
-            $endDate = $startDate->copy()->addMonths($request->rental_period_months)->subDay();
+            $endDate = $startDate->copy()->addMonths((int)$request->rental_period_months)->subDay();
 
             // Calculate amounts based on rental period
             $monthlyRent = $property->rent_amount;
@@ -307,6 +307,8 @@ class RentPaymentRepository
             'status' => 'pending',
             'admin_notes' => $request->additional_notes
         ]);
+
+        //wallet will be funded when admin approves the payment
 
         // Log payment proof upload
         AuditLog::log('rent_payment_proof_uploaded', $payment);

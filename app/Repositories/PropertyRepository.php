@@ -9,9 +9,12 @@ use App\Models\AuditLog;
 use App\Models\Favorite;
 use App\Models\Property;
 use App\Models\PropertyMedia;
+use App\Models\RentalAgreement;
+use App\Models\RentPayment;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
 use App\Util\ApiResponse;
+use Exception;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -75,13 +78,7 @@ class PropertyRepository
 
         $user = $request->user();
 
-        if (!$user->isLandlord()) {
-            return ApiResponse::respond(
-                status: false,
-                message: 'You are not a landlord!',
-                statusCode: 422,
-            );
-        }
+        $this->checkUserIsLandLord($user);
 
         // Create property
         $property = Property::create([
@@ -144,6 +141,51 @@ class PropertyRepository
             data: $property->load('media'),
             message: 'Property created successfully',
             statusCode: 201
+        );
+    }
+
+    public function getBookedApartments(Request $request)
+    {
+        $user = $request->user();
+        $this->checkUserIsLandLord($user);
+
+        $data = RentalAgreement::with('rentPayments', 'property', 'tenant', 'agent', 'supportTickets')
+            ->where('status', RentalAgreement::STATUS_ACTIVE)
+            ->where('landlord_id', $user->id)
+            ->whereHas('rentPayments', function ($q) {
+                $q->where('status', RentPayment::STATUS_VERIFIED);
+            })->get()->map(function ($agreement) {
+                return [
+                    'rental_agreement' => $agreement,
+                    'property' => $agreement->property,
+                    'tenant' => $agreement->tenant,
+                    'agent' => $agreement->agent,
+                    'total_rent_paid' => $agreement->rentPayments()->where('status', RentPayment::STATUS_VERIFIED)->sum('amount'),
+                    'next_payment_due_date' => optional($agreement->rentPayments()->where('status', RentPayment::STATUS_VERIFIED)->orderBy('payment_date', 'desc')->first())->next_due_date?->addMonth(),
+                    'support_tickets' => $agreement->supportTickets
+                ];
+            });
+
+        $totalPayments = RentalAgreement::where('landlord_id', $user->id)
+            ->whereHas('rentPayments', function ($q) {
+                $q->where('status', RentPayment::STATUS_VERIFIED);
+            })->withSum(['rentPayments' => function ($q) {
+                $q->where('status', RentPayment::STATUS_VERIFIED);
+            }], 'amount')->get()->sum('rent_payments_sum_amount');
+
+        $pendingPayments = RentalAgreement::where('landlord_id', $user->id)
+            ->whereHas('rentPayments', function ($q) {
+                $q->where('status', RentPayment::STATUS_PENDING)
+                ->where('payment_type', RentPayment::TYPE_ONLINE);
+            })->get();
+
+        return ApiResponse::respond(
+            data: [
+                'booked_apartments' => $data,
+                'total_payments' => $totalPayments,
+                'pending_payments' => $pendingPayments,
+            ],
+            message: 'Success!',
         );
     }
 
@@ -251,7 +293,7 @@ class PropertyRepository
     public function deleteProperty(Request $request, $id)
     {
         $property = Property::find($id);
-        if($property === null) {
+        if ($property === null) {
             return ApiResponse::respond(
                 message: 'Property not found',
                 status: false,
@@ -446,5 +488,13 @@ class PropertyRepository
             message: 'Media uploaded successfully',
             data: ['media' => $media]
         );
+    }
+
+
+    private function checkUserIsLandLord($user)
+    {
+        if (!$user->isLandlord()) {
+            throw new Exception('You are not a landlord!', 422);
+        }
     }
 }

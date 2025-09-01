@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
             SystemSettingsSeeder::class,
             AdminUserSeeder::class,
             StatesAndLgasSeeder::class,
+            // WalletSeeder::class,
         ]);
     }
 }
