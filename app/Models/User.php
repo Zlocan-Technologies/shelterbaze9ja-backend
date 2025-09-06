@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,7 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
@@ -179,6 +181,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->first_name . ' ' . $this->last_name;
     }
 
+    public function getNameAttribute()
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+
     public function getInitialsAttribute()
     {
         return strtoupper(substr($this->first_name, 0, 1) . substr($this->last_name, 0, 1));
@@ -238,5 +245,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getUnreadNotificationsCountAttribute()
     {
         return $this->notifications()->where('is_read', false)->count();
+    }
+
+    //Filament permissions
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->role == self::ROLE_ADMIN;
     }
 }

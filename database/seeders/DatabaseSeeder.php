@@ -8,9 +8,9 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call([
-            SystemSettingsSeeder::class,
+            // SystemSettingsSeeder::class,
             AdminUserSeeder::class,
-            StatesAndLgasSeeder::class,
+            // StatesAndLgasSeeder::class,
             // WalletSeeder::class,
         ]);
     }
