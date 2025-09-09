@@ -2,25 +2,37 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'phone_number', 
-        'password', 'role', 'profile_completed', 'account_status'
+        'first_name',
+        'last_name',
+        'email',
+        'phone_number',
+        'password',
+        'role',
+        'profile_completed',
+        'account_status',
+        'email_verified_at',
+        'fcm_token'
     ];
 
     protected $hidden = [
-        'password', 'remember_token'
+        'password',
+        'remember_token'
     ];
-    
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
@@ -131,6 +143,16 @@ class User extends Authenticatable
         return $this->hasMany(ChatConversation::class, 'agent_id');
     }
 
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    public function withdrawals()
+    {
+        return $this->hasMany(Withdrawal::class);
+    }
+
     // Scopes
     public function scopeByRole($query, $role)
     {
@@ -145,7 +167,7 @@ class User extends Authenticatable
     public function scopeVerified($query)
     {
         return $query->whereNotNull('email_verified_at')
-                    ->whereNotNull('phone_verified_at');
+            ->whereNotNull('phone_verified_at');
     }
 
     public function scopeProfileCompleted($query)
@@ -155,6 +177,11 @@ class User extends Authenticatable
 
     // Accessors
     public function getFullNameAttribute()
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+
+    public function getNameAttribute()
     {
         return $this->first_name . ' ' . $this->last_name;
     }
@@ -205,9 +232,9 @@ class User extends Authenticatable
     {
         // Check if user has paid engagement fee for this property
         return $this->engagementFees()
-                    ->where('property_id', $property->id)
-                    ->where('payment_status', 'completed')
-                    ->exists();
+            ->where('property_id', $property->id)
+            ->where('payment_status', 'completed')
+            ->exists();
     }
 
     public function getTotalSavingsAttribute()
@@ -218,5 +245,11 @@ class User extends Authenticatable
     public function getUnreadNotificationsCountAttribute()
     {
         return $this->notifications()->where('is_read', false)->count();
+    }
+
+    //Filament permissions
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->role == self::ROLE_ADMIN;
     }
 }

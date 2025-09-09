@@ -22,7 +22,7 @@ class FileUploadService
             $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
             // Upload to Cloudinary
-            $uploadedFileUrl = (new UploadApi())->upload($file->getRealPath(), [
+            $uploadedFileUrl = (new UploadApi())->upload($file->getPathname(), [
                 'folder' => $folder,
                 'public_id' => pathinfo($filename, PATHINFO_FILENAME),
                 'resource_type' => 'auto',
