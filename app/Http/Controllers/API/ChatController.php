@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\SearchConversationRequest;
+use App\Http\Requests\Chat\SendConversationMessage;
 use App\Http\Requests\Chat\StartConversationRequest;
 use App\Http\Requests\Chat\UpdateConversationRequest;
 use App\Models\ChatConversation;
@@ -23,6 +24,14 @@ class ChatController extends Controller
     public function __construct(
         private ChatRepository $chatRepository
     ) {}
+
+    /**
+     * Send chat message
+     */
+    public function sendMessage(SendConversationMessage $request)
+    {
+        return (new ResponseHandler())->execute(fn() => $this->chatRepository->sendMessage($request));
+    }
 
     /**
      * Get all conversations for the authenticated user
@@ -87,5 +96,4 @@ class ChatController extends Controller
     {
         return (new ResponseHandler())->execute(fn() => $this->chatRepository->searchConversations($request));
     }
-
 }

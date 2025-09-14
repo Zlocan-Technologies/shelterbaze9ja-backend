@@ -96,6 +96,7 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('chat')->group(function 
     Route::get('/conversations', [ChatController::class, 'getConversations']);
     Route::get('/conversations/{id}', [ChatController::class, 'getConversation']);
     Route::post('/conversations/start', [ChatController::class, 'startConversation']);
+    Route::post('/send-message', [ChatController::class, 'sendMessage']);
     Route::patch('/conversations/{id}', [ChatController::class, 'updateConversation']);
     Route::patch('/conversations/{id}/close', [ChatController::class, 'closeConversation']);
     Route::patch('/conversations/{id}/reopen', [ChatController::class, 'reopenConversation']);
