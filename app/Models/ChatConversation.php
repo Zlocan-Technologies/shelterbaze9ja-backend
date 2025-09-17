@@ -89,4 +89,8 @@ class ChatConversation extends Model
         
         return collect($participants)->filter();
     }
+
+    public function messages() {
+        return $this->hasMany(ChatMessage::class, 'chat_conversation_id');
+    }
 }

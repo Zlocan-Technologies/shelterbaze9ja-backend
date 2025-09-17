@@ -3,19 +3,58 @@
 namespace App\Repositories;
 
 use App\Http\Requests\Chat\SearchConversationRequest;
+use App\Http\Requests\Chat\SendConversationMessage;
 use App\Http\Requests\Chat\StartConversationRequest;
 use App\Http\Requests\Chat\UpdateConversationRequest;
 use App\Models\ChatConversation;
+use App\Models\ChatMessage;
 use App\Models\Notification;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\FirebaseService;
 use App\Util\ApiResponse;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ChatRepository
 {
+
+    public function __construct(protected FirebaseService $firebaseService) {}
+
+
+    /**
+     * Send a message to a conversation
+     */
+    public function sendMessage(SendConversationMessage $request)
+    {
+        $user = $request->user();
+        $conversation = ChatConversation::findOrFail($request->chat_conversation_id);
+
+        $data = [
+            'chat_conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'message' => $request->message
+        ];
+
+        $message = ChatMessage::create($data);
+
+        //push message to firebase
+        $response = $this->firebaseService->pushData('chats', $data);
+
+        if (!$response['success']) {
+            throw new Exception('Unable to send message, please try again', 422); 
+        }
+
+        $conversation->updateLastMessage();
+
+        return ApiResponse::respond(
+            message: 'Message sent successfully',
+            data: $message
+        );
+    }
+
     /**
      * Get all conversations for the authenticated user
      */
@@ -54,7 +93,6 @@ class ChatRepository
         );
     }
 
-
     /**
      * Get a specific conversation with its participants
      */
@@ -89,11 +127,11 @@ class ChatRepository
             message: 'Conversation retrieved successfully',
             data: [
                 'conversation' => $conversation,
-                'participants' => $conversation->getParticipants()
+                'participants' => $conversation->getParticipants(),
+                'messages' => $conversation->messages()->latest()->get(),
             ]
         );
     }
-
 
     public function startConversation(StartConversationRequest $request)
     {
@@ -339,7 +377,7 @@ class ChatRepository
             ->orderBy('last_message_at', 'desc')
             ->get();
 
-    
+
         return ApiResponse::respond(
             data: $conversations,
             message: 'Search results retrieved successfully'
