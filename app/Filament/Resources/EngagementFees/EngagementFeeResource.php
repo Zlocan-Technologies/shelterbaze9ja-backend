@@ -16,6 +16,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
+
 // use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class EngagementFeeResource extends Resource
@@ -25,6 +27,8 @@ class EngagementFeeResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'EngagementFee';
+    protected static string | UnitEnum | null $navigationGroup = 'Properties';
+
 
     public static function form(Schema $schema): Schema
     {
@@ -53,7 +57,7 @@ class EngagementFeeResource extends Resource
         return [
             'index' => ListEngagementFees::route('/'),
             'create' => CreateEngagementFee::route('/create'),
-            'view' => ViewEngagementFee::route('/{record}'),
+            // 'view' => ViewEngagementFee::route('/{record}'),
             'edit' => EditEngagementFee::route('/{record}/edit'),
         ];
     }

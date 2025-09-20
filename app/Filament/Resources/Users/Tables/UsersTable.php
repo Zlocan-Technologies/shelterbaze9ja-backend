@@ -20,24 +20,48 @@ class UsersTable
         return $table
             ->columns([
                 TextColumn::make('first_name')
+                    ->label('First Name')
                     ->searchable(),
                 TextColumn::make('last_name')
+                    ->label('Last Name')
                     ->searchable(),
                 TextColumn::make('email')
-                    ->label('Email address')
+                    ->label('Email Address')
                     ->searchable(),
                 TextColumn::make('phone_number')
+                    ->label('Phone Number')
                     ->searchable(),
-                TextColumn::make('role'),
+                TextColumn::make('profile.state')
+                    ->label('State')
+                    ->placeholder('Not set')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('profile.lga')
+                    ->label('LGA')
+                    ->placeholder('Not set')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('email_verified_at')
+                    ->label('Email Verified')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->placeholder('Not verified'),
                 TextColumn::make('phone_verified_at')
+                    ->label('Phone Verified')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->placeholder('Not verified'),
                 IconColumn::make('profile_completed')
+                    ->label('Profile Complete')
                     ->boolean(),
-                TextColumn::make('account_status'),
+                TextColumn::make('account_status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'active' => 'success',
+                        'suspended' => 'warning',
+                        'banned' => 'danger',
+                        'pending' => 'gray',
+                        default => 'gray',
+                    }),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
