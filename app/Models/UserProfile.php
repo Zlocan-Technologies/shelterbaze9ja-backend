@@ -38,7 +38,7 @@ class UserProfile extends Model
 
     public function generateAgentId()
     {
-        if ($this->user->isAgent() && !$this->agent_id) {
+        if ($this->user->role === 'agent' && !$this->agent_id) {
             $this->agent_id = 'AGT' . str_pad($this->user->id, 6, '0', STR_PAD_LEFT);
             $this->save();
         }

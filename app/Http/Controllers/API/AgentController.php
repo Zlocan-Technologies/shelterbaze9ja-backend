@@ -5,14 +5,17 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Agent\VerifyPropertyRequest;
 use App\Models\User;
 use App\Models\AgentAssignment;
 use App\Models\Property;
 use App\Models\PropertyVerification;
 use App\Models\RentalAgreement;
 use App\Models\AuditLog;
+use App\Repositories\AgentRepository;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
+use App\Util\ResponseHandler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -20,14 +23,13 @@ use Carbon\Carbon;
 
 class AgentController extends Controller
 {
-    private $fileUploadService;
-    private $notificationService;
 
-    public function __construct(FileUploadService $fileUploadService, NotificationService $notificationService)
-    {
-        $this->fileUploadService = $fileUploadService;
-        $this->notificationService = $notificationService;
-    }
+    public function __construct(
+        private FileUploadService $fileUploadService,
+        private NotificationService $notificationService,
+        private AgentRepository $agentRepository
+    ) {}
+
 
     /**
      * Get landlords assigned to the authenticated agent
@@ -57,8 +59,8 @@ class AgentController extends Controller
                 ->when($request->get('search'), function ($query, $search) {
                     return $query->whereHas('landlord', function ($q) use ($search) {
                         $q->where('first_name', 'LIKE', "%{$search}%")
-                          ->orWhere('last_name', 'LIKE', "%{$search}%")
-                          ->orWhere('email', 'LIKE', "%{$search}%");
+                            ->orWhere('last_name', 'LIKE', "%{$search}%")
+                            ->orWhere('email', 'LIKE', "%{$search}%");
                     });
                 })
                 ->orderBy('created_at', 'desc')
@@ -86,7 +88,8 @@ class AgentController extends Controller
                 'completed_assignments' => AgentAssignment::where('agent_id', $agent->id)
                     ->where('assignment_type', 'landlord_support')
                     ->where('status', 'completed')->count(),
-                'total_properties_managed' => Property::whereIn('landlord_id',
+                'total_properties_managed' => Property::whereIn(
+                    'landlord_id',
                     AgentAssignment::where('agent_id', $agent->id)
                         ->where('assignment_type', 'landlord_support')
                         ->where('status', 'active')
@@ -102,7 +105,6 @@ class AgentController extends Controller
                     'summary' => $summary
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -120,82 +122,9 @@ class AgentController extends Controller
      */
     public function getAssignedProperties(Request $request)
     {
-        try {
-            $agent = $request->user();
-
-            $assignments = AgentAssignment::with([
-                'property.media',
-                'property.landlord' => function ($query) {
-                    $query->select('id', 'first_name', 'last_name', 'email', 'phone_number');
-                }
-            ])
-                ->where('agent_id', $agent->id)
-                ->where('assignment_type', 'property_verification')
-                ->when($request->status, function ($query, $status) {
-                    return $query->where('status', $status);
-                })
-                ->when($request->get('location'), function ($query, $location) {
-                    return $query->whereHas('property', function ($q) use ($location) {
-                        $q->where('state', 'LIKE', "%{$location}%")
-                          ->orWhere('lga', 'LIKE', "%{$location}%");
-                    });
-                })
-                ->when($request->get('priority'), function ($query, $priority) {
-                    // Prioritize by creation date for now, can be enhanced
-                    if ($priority === 'urgent') {
-                        return $query->where('created_at', '<=', now()->subDays(3));
-                    }
-                    return $query;
-                })
-                ->orderBy('created_at', 'desc')
-                ->paginate($request->get('per_page', 15));
-
-            // Add computed properties
-            $assignments->getCollection()->transform(function ($assignment) {
-                if ($assignment->property) {
-                    $assignment->days_since_assignment = $assignment->created_at->diffInDays(now());
-                    $assignment->is_urgent = $assignment->days_since_assignment > 3;
-                    $assignment->property->primary_image = $assignment->property->media
-                        ->where('is_primary', true)->first()?->media_url;
-                    $assignment->property->images_count = $assignment->property->media
-                        ->where('media_type', 'image')->count();
-                }
-                return $assignment;
-            });
-
-            // Summary statistics
-            $summary = [
-                'total_assigned' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'property_verification')->count(),
-                'pending_verification' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'property_verification')
-                    ->where('status', 'active')->count(),
-                'completed_verifications' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'property_verification')
-                    ->where('status', 'completed')->count(),
-                'urgent_assignments' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'property_verification')
-                    ->where('status', 'active')
-                    ->where('created_at', '<=', now()->subDays(3))->count(),
-                'verification_rate' => $this->calculateVerificationRate($agent->id)
-            ];
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Assigned properties retrieved successfully',
-                'data' => [
-                    'assignments' => $assignments,
-                    'summary' => $summary
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch assigned properties',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+       return (new ResponseHandler())->execute(function () use ($request) {
+            return $this->agentRepository->getAssignedProperties($request);
+        });
     }
 
     /**
@@ -204,185 +133,11 @@ class AgentController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function verifyProperty(Request $request)
+    public function verifyProperty(VerifyPropertyRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'property_id' => 'required|exists:properties,id',
-            'verification_images' => 'required|array|min:3|max:10',
-            'verification_images.*' => 'image|mimes:jpeg,png,jpg|max:5120', // 5MB max
-            'verification_notes' => 'required|string|max:1000',
-            'longitude' => 'required|numeric|between:-180,180',
-            'latitude' => 'required|numeric|between:-90,90',
-            'status' => 'required|in:verified,rejected',
-            'rejection_reason' => 'required_if:status,rejected|string|max:500',
-            'property_condition' => 'sometimes|in:excellent,good,fair,poor',
-            'accessibility_notes' => 'nullable|string|max:300',
-            'surrounding_area_notes' => 'nullable|string|max:300'
-        ], [
-            'verification_images.min' => 'At least 3 verification images are required',
-            'verification_images.max' => 'Maximum 10 verification images allowed',
-            'verification_images.*.max' => 'Each image cannot exceed 5MB',
-            'rejection_reason.required_if' => 'Rejection reason is required when rejecting a property'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $agent = $request->user();
-            $property = Property::with(['landlord'])->findOrFail($request->property_id);
-
-            // Check if agent is assigned to verify this property
-            $assignment = AgentAssignment::where('agent_id', $agent->id)
-                ->where('property_id', $property->id)
-                ->where('assignment_type', 'property_verification')
-                ->where('status', 'active')
-                ->first();
-
-            if (!$assignment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not authorized to verify this property'
-                ], 403);
-            }
-
-            // Check if property hasn't been verified already
-            if ($property->verification_status === 'verified') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Property has already been verified'
-                ], 400);
-            }
-
-            // Upload verification images
-            $imageUrls = [];
-            foreach ($request->file('verification_images') as $index => $image) {
-                $upload = $this->fileUploadService->uploadToCloudinary(
-                    $image, 
-                    'property_verifications/' . $property->id
-                );
-                
-                if ($upload['success']) {
-                    $imageUrls[] = [
-                        'url' => $upload['url'],
-                        'public_id' => $upload['public_id'] ?? null,
-                        'order' => $index + 1,
-                        'uploaded_at' => now()->toISOString()
-                    ];
-                }
-            }
-
-            if (count($imageUrls) < 3) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to upload minimum required images'
-                ], 500);
-            }
-
-            // Validate location accuracy (basic check)
-            $locationAccurate = $this->validatePropertyLocation(
-                $property,
-                $request->latitude,
-                $request->longitude
-            );
-
-            // Create comprehensive verification record
-            $verificationData = [
-                'property_id' => $property->id,
-                'agent_id' => $agent->id,
-                'verification_images' => $imageUrls,
-                'verification_notes' => $request->verification_notes,
-                'longitude' => $request->longitude,
-                'latitude' => $request->latitude,
-                'verification_date' => now(),
-                'status' => $request->status,
-                'rejection_reason' => $request->rejection_reason,
-                'property_condition' => $request->property_condition ?? 'good',
-                'accessibility_notes' => $request->accessibility_notes,
-                'surrounding_area_notes' => $request->surrounding_area_notes,
-                'location_accuracy' => $locationAccurate,
-                'verification_metadata' => [
-                    'images_count' => count($imageUrls),
-                    'verification_duration' => $assignment->created_at->diffInMinutes(now()),
-                    'device_info' => $request->header('User-Agent'),
-                    'ip_address' => $request->ip()
-                ]
-            ];
-
-            $verification = PropertyVerification::create($verificationData);
-
-            // Update property verification status
-            if ($request->status === 'verified') {
-                $verification->verify();
-                $message = 'Property verified successfully';
-                $notificationType = 'success';
-                $landlordMessage = "Your property '{$property->title}' has been successfully verified by our agent and is now live.";
-            } else {
-                $verification->reject($request->rejection_reason);
-                $message = 'Property verification rejected';
-                $notificationType = 'warning';
-                $landlordMessage = "Your property '{$property->title}' verification was rejected. Reason: {$request->rejection_reason}";
-            }
-
-            // Complete the assignment
-            $assignment->complete('Property verification completed: ' . $request->status);
-
-            // Log verification
-            AuditLog::log('property_verification_completed', $verification, null, [
-                'verification_status' => $request->status,
-                'images_uploaded' => count($imageUrls),
-                'location_accuracy' => $locationAccurate
-            ]);
-
-            // Create notifications
-            $this->notificationService->createInAppNotification(
-                $agent->id,
-                'Verification Completed',
-                $message,
-                $notificationType
-            );
-
-            // Notify landlord
-            $this->notificationService->createInAppNotification(
-                $property->landlord_id,
-                'Property Verification Update',
-                $landlordMessage,
-                $notificationType
-            );
-
-            // For verified properties, notify admin
-            if ($request->status === 'verified') {
-                $this->notificationService->createInAppNotification(
-                    1, // Admin user ID
-                    'Property Verified',
-                    "Property '{$property->title}' has been verified by agent {$agent->full_name}.",
-                    'info'
-                );
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'data' => [
-                    'verification' => $verification->load('property'),
-                    'property_status' => $property->fresh()->verification_status,
-                    'location_accuracy' => $locationAccurate,
-                    'images_uploaded' => count($imageUrls)
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Property verification failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->executeTransaction(function () use ($request) {
+            return $this->agentRepository->verifyProperty($request);
+        });
     }
 
     /**
@@ -459,7 +214,6 @@ class AgentController extends Controller
                 'message' => 'Agent verification successful',
                 'data' => ['agent' => $agentData]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -532,19 +286,19 @@ class AgentController extends Controller
                 case 'create':
                     $result = $this->createPropertyForLandlord($landlord, $agent, $request);
                     break;
-                
+
                 case 'update':
                     $result = $this->updatePropertyForLandlord($landlord, $agent, $request);
                     break;
-                
+
                 case 'delete':
                     $result = $this->deletePropertyForLandlord($landlord, $agent, $request);
                     break;
-                
+
                 case 'toggle_status':
                     $result = $this->togglePropertyStatus($landlord, $agent, $request);
                     break;
-                
+
                 default:
                     throw new \InvalidArgumentException('Invalid action specified');
             }
@@ -569,7 +323,6 @@ class AgentController extends Controller
                 'message' => ucfirst($request->action) . ' action completed successfully',
                 'data' => $result
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -609,7 +362,7 @@ class AgentController extends Controller
                 ->when($request->get('location'), function ($query, $location) {
                     return $query->whereHas('property', function ($q) use ($location) {
                         $q->where('state', 'LIKE', "%{$location}%")
-                          ->orWhere('lga', 'LIKE', "%{$location}%");
+                            ->orWhere('lga', 'LIKE', "%{$location}%");
                     });
                 })
                 ->orderBy('verification_date', 'desc')
@@ -644,7 +397,6 @@ class AgentController extends Controller
                     'summary' => $summary
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -732,7 +484,6 @@ class AgentController extends Controller
                     'agent_level' => $this->calculateAgentLevel($stats, $performance)
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -786,8 +537,8 @@ class AgentController extends Controller
                 $this->notificationService->createInAppNotification(
                     1, // Admin user ID
                     'Agent Unavailable',
-                    "Agent {$agent->full_name} is now unavailable" . 
-                    ($request->unavailable_until ? " until " . Carbon::parse($request->unavailable_until)->format('Y-m-d') : ""),
+                    "Agent {$agent->full_name} is now unavailable" .
+                        ($request->unavailable_until ? " until " . Carbon::parse($request->unavailable_until)->format('Y-m-d') : ""),
                     'warning'
                 );
             }
@@ -800,7 +551,6 @@ class AgentController extends Controller
                     'agent' => $agent->fresh()
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -833,7 +583,7 @@ class AgentController extends Controller
 
             // Assuming 5% agent commission on successful rentals
             $agentCommissionRate = 0.05; // 5%
-            
+
             $earnings = [
                 'total_properties_rented' => $successfulRentals->count(),
                 'total_rent_value_facilitated' => $successfulRentals->sum('rent_amount'),
@@ -892,7 +642,6 @@ class AgentController extends Controller
                     })
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -997,7 +746,7 @@ class AgentController extends Controller
                 'message' => 'Report submitted successfully',
                 'data' => [
                     'ticket' => $ticket,
-                    'estimated_response_time' => match($request->priority) {
+                    'estimated_response_time' => match ($request->priority) {
                         'high' => '2-4 hours',
                         'medium' => '4-8 hours',
                         'low' => '1-2 business days',
@@ -1005,7 +754,6 @@ class AgentController extends Controller
                     }
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1097,7 +845,6 @@ class AgentController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1126,41 +873,6 @@ class AgentController extends Controller
         return $total > 0 ? round(($completed / $total) * 100, 2) : 0;
     }
 
-    /**
-     * Validate property location accuracy
-     */
-    private function validatePropertyLocation($property, $lat, $lng)
-    {
-        // Basic validation - in real app, use more sophisticated location verification
-        if (!$property->latitude || !$property->longitude) {
-            return true; // No reference to compare
-        }
-
-        $distance = $this->calculateDistance(
-            $property->latitude, 
-            $property->longitude, 
-            $lat, 
-            $lng
-        );
-
-        // Allow up to 100 meters difference
-        return $distance <= 0.1; // 0.1 km = 100 meters
-    }
-
-    /**
-     * Calculate distance between two coordinates
-     */
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $earthRadius = 6371; // km
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        
-        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
-        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
-        
-        return $earthRadius * $c;
-    }
 
     /**
      * Create property on behalf of landlord
@@ -1209,11 +921,19 @@ class AgentController extends Controller
     private function updatePropertyForLandlord($landlord, $agent, $request)
     {
         $property = Property::where('landlord_id', $landlord->id)->findOrFail($request->property_id);
-        
+
         $oldData = $property->toArray();
         $property->update($request->only([
-            'title', 'description', 'property_type', 'rent_amount',
-            'location_address', 'state', 'lga', 'longitude', 'latitude', 'facilities'
+            'title',
+            'description',
+            'property_type',
+            'rent_amount',
+            'location_address',
+            'state',
+            'lga',
+            'longitude',
+            'latitude',
+            'facilities'
         ]));
 
         AuditLog::log('property_updated_by_agent', $property, $oldData, $property->fresh()->toArray());
@@ -1227,7 +947,7 @@ class AgentController extends Controller
     private function deletePropertyForLandlord($landlord, $agent, $request)
     {
         $property = Property::where('landlord_id', $landlord->id)->findOrFail($request->property_id);
-        
+
         if ($property->rentalAgreements()->active()->exists()) {
             throw new \Exception('Cannot delete property with active rental agreements');
         }
@@ -1244,7 +964,7 @@ class AgentController extends Controller
     private function togglePropertyStatus($landlord, $agent, $request)
     {
         $property = Property::where('landlord_id', $landlord->id)->findOrFail($request->property_id);
-        
+
         $newStatus = $property->status === 'open' ? 'closed' : 'open';
         $property->update(['status' => $newStatus]);
 
@@ -1281,7 +1001,7 @@ class AgentController extends Controller
     {
         $total = PropertyVerification::where('agent_id', $agentId)->count();
         $successful = PropertyVerification::where('agent_id', $agentId)->where('status', 'verified')->count();
-        
+
         return $total > 0 ? round(($successful / $total) * 100, 2) : 0;
     }
 
@@ -1324,7 +1044,7 @@ class AgentController extends Controller
     private function calculateResponseTimeScore($agentId)
     {
         $avgTime = $this->calculateAverageVerificationTime($agentId);
-        
+
         if ($avgTime <= 24) return 5.0; // Excellent
         if ($avgTime <= 48) return 4.0; // Good
         if ($avgTime <= 72) return 3.0; // Average
@@ -1395,13 +1115,13 @@ class AgentController extends Controller
     private function calculateAgentLevel($stats, $performance)
     {
         $score = 0;
-        
+
         // Points for verifications
         $score += min($stats['total_verifications'] * 2, 200);
-        
+
         // Points for success rate
         $score += $performance['verification_success_rate'];
-        
+
         // Points for assignments
         $score += $stats['active_landlord_assignments'] * 5;
         $score += $stats['completed_assignments'] * 3;
@@ -1410,7 +1130,7 @@ class AgentController extends Controller
         if ($score >= 300) return ['level' => 'Professional', 'points' => $score, 'next_level_points' => 500];
         if ($score >= 150) return ['level' => 'Experienced', 'points' => $score, 'next_level_points' => 300];
         if ($score >= 50) return ['level' => 'Intermediate', 'points' => $score, 'next_level_points' => 150];
-        
+
         return ['level' => 'Beginner', 'points' => $score, 'next_level_points' => 50];
     }
 
@@ -1420,9 +1140,9 @@ class AgentController extends Controller
     private function getTrainingRecommendations($agentId)
     {
         $recommendations = [];
-        
+
         $successRate = $this->calculateVerificationSuccessRate($agentId);
-        
+
         if ($successRate < 90) {
             $recommendations[] = [
                 'title' => 'Property Verification Standards',

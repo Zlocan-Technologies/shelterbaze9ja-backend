@@ -17,14 +17,24 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+      protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static ?string $recordTitleAttribute = 'User';
+
+    protected static ?string $recordTitleAttribute = 'Tenants';
+
+    protected static ?string $navigationLabel = 'Tenants';
+    protected static string|UnitEnum|null $navigationGroup = 'Users';
+
+
+    protected static ?string $modelLabel = 'Tenant';
+
+    protected static ?string $pluralModelLabel = 'Tenants';
 
     public static function form(Schema $schema): Schema
     {
@@ -39,6 +49,15 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return UsersTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('role', User::ROLE_USER)
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 
     public static function getRelations(): array
@@ -61,6 +80,7 @@ class UserResource extends Resource
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
+            ->where('role', User::ROLE_USER)
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

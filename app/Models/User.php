@@ -25,6 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'profile_completed',
         'account_status',
         'email_verified_at',
+        'phone_verified_at',
         'fcm_token'
     ];
 

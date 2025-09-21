@@ -6,6 +6,8 @@ use App\Filament\Resources\Properties\Pages\CreateProperty;
 use App\Filament\Resources\Properties\Pages\EditProperty;
 use App\Filament\Resources\Properties\Pages\ListProperties;
 use App\Filament\Resources\Properties\Pages\ViewProperty;
+use App\Filament\Resources\Properties\RelationManagers\MediaRelationManager;
+use App\Filament\Resources\Properties\RelationManagers\PropertyVerificationsRelationManager;
 use App\Filament\Resources\Properties\Schemas\PropertyForm;
 use App\Filament\Resources\Properties\Schemas\PropertyInfolist;
 use App\Filament\Resources\Properties\Tables\PropertiesTable;
@@ -17,6 +19,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class PropertyResource extends Resource
 {
@@ -25,6 +28,8 @@ class PropertyResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'Property';
+    
+    protected static string | UnitEnum | null $navigationGroup = 'Properties';
 
 
     public static function form(Schema $schema): Schema
@@ -45,9 +50,12 @@ class PropertyResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            MediaRelationManager::class,
+            PropertyVerificationsRelationManager::class
         ];
     }
+
+    
 
     public static function getPages(): array
     {

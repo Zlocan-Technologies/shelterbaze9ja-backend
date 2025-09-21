@@ -16,6 +16,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
+
 // use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RentSavingResource extends Resource
@@ -25,7 +27,11 @@ class RentSavingResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'RentSaving';
-    protected static ?string $navigationParentItem = 'Rent Management';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Rent Management';
+
+
+
 
     public static function form(Schema $schema): Schema
     {

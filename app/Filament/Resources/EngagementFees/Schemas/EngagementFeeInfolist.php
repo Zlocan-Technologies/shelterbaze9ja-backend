@@ -9,13 +9,22 @@ class EngagementFeeInfolist
 {
     public static function configure(Schema $schema): Schema
     {
+        $record = $schema->getRecord();
         return $schema
             ->components([
                 TextEntry::make('user_id')
-                    ->numeric(),
+                    ->formatStateUsing(function () use($record) {
+                        return $record->user?->name ?? 'N/A';
+                    })
+                    ->label('Customer'),
+                    
                 TextEntry::make('property_id')
-                    ->numeric(),
+                    ->formatStateUsing(function () use($record) {
+                        return $record->property?->title ?? 'N/A';
+                    })
+                    ->label('Property'),
                 TextEntry::make('amount')
+                    ->prefix('₦')
                     ->numeric(),
                 TextEntry::make('payment_reference'),
                 TextEntry::make('payment_status'),

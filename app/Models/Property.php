@@ -13,7 +13,7 @@ class Property extends Model
     protected $fillable = [
         'landlord_id', 'agent_id', 'title', 'description', 'property_type',
         'rent_amount', 'location_address', 'state', 'lga', 'longitude', 
-        'latitude', 'facilities', 'status', 'verification_status'
+        'latitude', 'facilities', 'status', 'verification_status', 'verified_by', 'verified_at'
     ];
 
     protected $casts = [

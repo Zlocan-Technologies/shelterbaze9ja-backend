@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\AgentController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\ChatController;
 use App\Http\Controllers\API\EngagementController;
@@ -114,11 +115,17 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('savings')->group(functi
 Route::middleware(['auth:sanctum', 'verified'])->prefix('savings-mgt')->group(function () {
     Route::post('/deposit', [RentSavingsController::class, 'deposit']); // done
     Route::get('/verify-deposit', [RentSavingsController::class, 'verifyDeposit']); // done
-    Route::post('/withdraw', [RentSavingsController::class, 'withdraw']); 
+    Route::post('/withdraw', [RentSavingsController::class, 'withdraw']);
     Route::get('/transaction-history/{savingsId}', [RentSavingsController::class, 'getTransactionHistory']); // done
     Route::get('/dashboard', [RentSavingsController::class, 'dashboard']); // done
     Route::post('/cancel-plan/{id}', [RentSavingsController::class, 'cancelPlan']);
     Route::post('/pause-plan/{id}', [RentSavingsController::class, 'pausePlan']);
     Route::post('/resume-plan/{id}', [RentSavingsController::class, 'resumePlan']);
     Route::get('/insights', [RentSavingsController::class, 'getInsights']); // sonw
+});
+
+//routes for agent module
+Route::middleware(['auth:sanctum', 'verified'])->prefix('agents')->group(function () {
+    Route::get('/assigned-properties', [AgentController::class, 'getAssignedProperties']);
+    Route::post('/verify-property', [AgentController::class, 'verifyProperty']);
 });
