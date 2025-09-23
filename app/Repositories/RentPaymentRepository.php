@@ -50,27 +50,27 @@ class RentPaymentRepository
         }
 
         // Check if user has paid engagement fee
-        if (!$property->hasUserPaidEngagementFee($user->id)) {
-            return ApiResponse::respond(
-                message: 'Please pay engagement fee first to proceed with rental',
-                status: false,
-                statusCode: 402
-            );
-        }
+        // if (!$property->hasUserPaidEngagementFee($user->id)) {
+        //     return ApiResponse::respond(
+        //         message: 'Please pay engagement fee first to proceed with rental',
+        //         status: false,
+        //         statusCode: 402
+        //     );
+        // }
 
         // Check if user already has active agreement for this property
-        $existingAgreement = RentalAgreement::where('property_id', $property->id)
-            ->where('tenant_id', $user->id)
-            ->whereIn('status', ['active', 'pending'])
-            ->first();
+        // $existingAgreement = RentalAgreement::where('property_id', $property->id)
+        //     ->where('tenant_id', $user->id)
+        //     ->whereIn('status', ['active', 'pending'])
+        //     ->first();
 
-        if ($existingAgreement) {
-            return ApiResponse::respond(
-                message: 'You already have an active or pending rental agreement for this property',
-                status: false,
-                statusCode: 400
-            );
-        }
+        // if ($existingAgreement) {
+        //     // return ApiResponse::respond(
+        //     //     message: 'You already have an active or pending rental agreement for this property',
+        //     //     status: false,
+        //     //     statusCode: 400
+        //     // );
+        // }
 
         // Check user's rental history and limits
         $activeRentals = RentalAgreement::where('tenant_id', $user->id)
@@ -102,7 +102,10 @@ class RentPaymentRepository
         }
 
         // Create rental agreement
-        $agreement = RentalAgreement::create([
+        $agreement = RentalAgreement::updateOrCreate([
+            'property_id' => $property->id,
+            'tenant_id' => $user->id
+        ],[
             'property_id' => $property->id,
             'tenant_id' => $user->id,
             'landlord_id' => $property->landlord_id,

@@ -128,4 +128,5 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('savings-mgt')->group(fu
 Route::middleware(['auth:sanctum', 'verified'])->prefix('agents')->group(function () {
     Route::get('/assigned-properties', [AgentController::class, 'getAssignedProperties']);
     Route::post('/verify-property', [AgentController::class, 'verifyProperty']);
+    Route::get('/assigned-landlords', [AgentController::class, 'getAssignedLandlords']);
 });
