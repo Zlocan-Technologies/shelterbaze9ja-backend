@@ -39,79 +39,9 @@ class AgentController extends Controller
      */
     public function getAssignedLandlords(Request $request)
     {
-        try {
-            $agent = $request->user();
-
-            $assignments = AgentAssignment::with([
-                'landlord' => function ($query) {
-                    $query->select('id', 'first_name', 'last_name', 'email', 'phone_number', 'created_at', 'account_status');
-                },
-                'landlord.profile:user_id,address,state,lga',
-                'landlord.properties' => function ($query) {
-                    $query->select('id', 'landlord_id', 'title', 'status', 'verification_status', 'rent_amount', 'created_at');
-                }
-            ])
-                ->where('agent_id', $agent->id)
-                ->where('assignment_type', 'landlord_support')
-                ->when($request->status, function ($query, $status) {
-                    return $query->where('status', $status);
-                })
-                ->when($request->get('search'), function ($query, $search) {
-                    return $query->whereHas('landlord', function ($q) use ($search) {
-                        $q->where('first_name', 'LIKE', "%{$search}%")
-                            ->orWhere('last_name', 'LIKE', "%{$search}%")
-                            ->orWhere('email', 'LIKE', "%{$search}%");
-                    });
-                })
-                ->orderBy('created_at', 'desc')
-                ->paginate($request->get('per_page', 15));
-
-            // Add computed properties
-            $assignments->getCollection()->transform(function ($assignment) {
-                if ($assignment->landlord) {
-                    $assignment->landlord->total_properties = $assignment->landlord->properties->count();
-                    $assignment->landlord->verified_properties = $assignment->landlord->properties
-                        ->where('verification_status', 'verified')->count();
-                    $assignment->landlord->total_rent_value = $assignment->landlord->properties
-                        ->where('status', 'open')->sum('rent_amount');
-                    $assignment->assignment_duration = $assignment->created_at->diffInDays(now());
-                }
-                return $assignment;
-            });
-
-            $summary = [
-                'total_assignments' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'landlord_support')->count(),
-                'active_assignments' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'landlord_support')
-                    ->where('status', 'active')->count(),
-                'completed_assignments' => AgentAssignment::where('agent_id', $agent->id)
-                    ->where('assignment_type', 'landlord_support')
-                    ->where('status', 'completed')->count(),
-                'total_properties_managed' => Property::whereIn(
-                    'landlord_id',
-                    AgentAssignment::where('agent_id', $agent->id)
-                        ->where('assignment_type', 'landlord_support')
-                        ->where('status', 'active')
-                        ->pluck('landlord_id')
-                )->count()
-            ];
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Assigned landlords retrieved successfully',
-                'data' => [
-                    'assignments' => $assignments,
-                    'summary' => $summary
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch assigned landlords',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->execute(function () use ($request) {
+            return $this->agentRepository->getAssignedLandlords($request);
+        });
     }
 
     /**

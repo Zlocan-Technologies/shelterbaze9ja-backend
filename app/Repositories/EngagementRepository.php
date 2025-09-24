@@ -148,17 +148,17 @@ class EngagementRepository
         $property = Property::with(['landlord', 'agent'])->findOrFail($propertyId);
 
         // Check if user has paid engagement fee
-        if (
-            !$property->hasUserPaidEngagementFee($user->id) &&
-            $user->id !== $property->landlord_id &&
-            !$user->isAdmin()
-        ) {
-            return ApiResponse::respond(
-                message: 'Engagement fee required to view contact details',
-                status: false,
-                statusCode: 402
-            );
-        }
+        // if (
+        //     !$property->hasUserPaidEngagementFee($user->id) &&
+        //     $user->id !== $property->landlord_id &&
+        //     !$user->isAdmin()
+        // ) {
+        //     return ApiResponse::respond(
+        //         message: 'Engagement fee required to view contact details',
+        //         status: false,
+        //         statusCode: 402
+        //     );
+        // }
 
         $contactData = [
             'landlord' => [

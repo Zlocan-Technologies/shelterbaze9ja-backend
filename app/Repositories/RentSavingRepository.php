@@ -231,18 +231,18 @@ class RentSavingRepository
         }
 
         // Check for pending deposits
-        $pendingDeposit = $saving->transactions()
-            ->where('transaction_type', 'deposit')
-            ->where('status', 'pending')
-            ->first();
+        // $pendingDeposit = $saving->transactions()
+        //     ->where('transaction_type', 'deposit')
+        //     ->where('status', 'pending')
+        //     ->first();
 
-        if ($pendingDeposit) {
-            return ApiResponse::respond(
-                status: false,
-                statusCode: 400,
-                message: 'You have a pending deposit transaction. Please complete or cancel it first.'
-            );
-        }
+        // if ($pendingDeposit) {
+        //     return ApiResponse::respond(
+        //         status: false,
+        //         statusCode: 400,
+        //         message: 'You have a pending deposit transaction. Please complete or cancel it first.'
+        //     );
+        // }
 
         $chargeAmount = $saving->calculateDepositCharge($amount);
         $netAmount = $amount - $chargeAmount;
