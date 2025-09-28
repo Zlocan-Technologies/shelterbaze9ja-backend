@@ -18,17 +18,23 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
-// use Illuminate\Database\Eloquent\SoftDeletingScope;
-
 class RentalAgreementResource extends Resource
 {
     protected static ?string $model = RentalAgreement::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static ?string $recordTitleAttribute = 'RentalAgreement';
+    protected static ?string $recordTitleAttribute = 'id';
+    
+    protected static ?string $modelLabel = 'Rental Agreement';
+    
+    protected static ?string $pluralModelLabel = 'Rental Agreements';
+    
     protected static string | UnitEnum | null $navigationGroup = 'Rent Management';
 
+    protected static ?string $navigationLabel = 'Rental Agreements';
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {
@@ -69,5 +75,24 @@ class RentalAgreementResource extends Resource
                 // SoftDeletingScope::class,
             ]);
     }
-    
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'property.title',
+            'tenant.name',
+            'landlord.name',
+            'agent.name',
+        ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'primary';
+    }
 }

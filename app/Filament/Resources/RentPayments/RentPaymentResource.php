@@ -57,7 +57,7 @@ class RentPaymentResource extends Resource
     {
         return [
             'index' => ListRentPayments::route('/'),
-            'create' => CreateRentPayment::route('/create'),
+            // 'create' => CreateRentPayment::route('/create'),
             'view' => ViewRentPayment::route('/{record}'),
             'edit' => EditRentPayment::route('/{record}/edit'),
         ];

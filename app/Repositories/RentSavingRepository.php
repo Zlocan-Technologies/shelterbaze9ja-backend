@@ -11,6 +11,7 @@ use App\Http\Requests\RentSaving\WithdrawSavingRequest;
 use App\Models\AuditLog;
 use App\Models\Property;
 use App\Models\RentSaving;
+use App\Models\SystemSetting;
 use App\Models\SavingsTransaction;
 use App\Services\NotificationService;
 use App\Services\PaymentService;
@@ -102,6 +103,8 @@ class RentSavingRepository
             }
         }
 
+        $systemSettings = SystemSetting::first();
+
         $saving = RentSaving::create([
             'user_id' => $user->id,
             'property_id' => $request->property_id,
@@ -110,6 +113,8 @@ class RentSavingRepository
             'due_date' => $request->due_date,
             'is_external_property' => $request->is_external_property,
             'external_property_details' => $request->external_property_details,
+            'early_withdrawal_penalty' => $systemSettings->default_early_withdrawal_penalty,
+            'deposit_charge' => $systemSettings->default_deposit_charge,
         ]);
 
         // Log savings plan creation

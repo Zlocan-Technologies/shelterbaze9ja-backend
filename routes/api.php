@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AgentController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\Api\BiometricController;
 use App\Http\Controllers\API\ChatController;
 use App\Http\Controllers\API\EngagementController;
 use App\Http\Controllers\API\NotificationController;
@@ -18,6 +19,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/password/forgot', [AuthController::class, 'forgotPassword']);
+    
+    // Biometric authentication routes
+    Route::post('/biometric/authenticate', [BiometricController::class, 'authenticate']);
 });
 
 Route::prefix('/savings')->group(function () {
@@ -35,6 +39,15 @@ Route::prefix('engagement')->group(function () {
 Route::middleware(['auth:sanctum', 'verified'])->prefix('auth')->group(function () {
     Route::post('/refreshToken', [AuthController::class, 'refreshToken']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Protected biometric routes
+    Route::prefix('biometric')->group(function () {
+        Route::post('/enroll', [BiometricController::class, 'enroll']);
+        Route::delete('/disable', [BiometricController::class, 'disable']);
+        Route::get('/status', [BiometricController::class, 'status']);
+        Route::get('/attempts', [BiometricController::class, 'attempts']);
+        Route::put('/reenroll', [BiometricController::class, 'reenroll']);
+    });
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('profile')->group(function () {
