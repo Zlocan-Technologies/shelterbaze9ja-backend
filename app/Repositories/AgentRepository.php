@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Http\Requests\Agent\ManageListingForLandLordRequest;
 use App\Http\Requests\Agent\VerifyPropertyRequest;
 use App\Models\AgentAssignment;
 use App\Models\AuditLog;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
 use App\Util\ApiResponse;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -415,18 +417,9 @@ class AgentRepository
      */
     public function verifyAgent(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate( [
             'agent_id' => 'required|string|max:20'
         ]);
-
-        if ($validator->fails()) {
-            return [
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-                'status_code' => 422
-            ];
-        }
 
         $agent = User::whereHas('profile', function ($query) use ($request) {
             $query->where('agent_id', $request->agent_id);
@@ -437,11 +430,11 @@ class AgentRepository
             ->first();
 
         if (!$agent) {
-            return [
-                'success' => false,
-                'message' => 'Agent not found or not active',
-                'status_code' => 404
-            ];
+            return ApiResponse::respond(
+                message: 'Agent not found or not active',
+                status: false,
+                statusCode: 404
+            );
         }
 
         // Get agent performance statistics
@@ -477,11 +470,10 @@ class AgentRepository
             'agent_id' => $request->agent_id
         ]);
 
-        return [
-            'success' => true,
-            'message' => 'Agent verification successful',
-            'data' => ['agent' => $agentData]
-        ];
+        return ApiResponse::respond(
+            message: 'Agent verification successful',
+            data: ['agent' => $agentData]
+        );
     }
 
     /**
@@ -490,39 +482,8 @@ class AgentRepository
      * @param Request $request
      * @return array
      */
-    public function manageListingForLandlord(Request $request)
+    public function manageListingForLandlord(ManageListingForLandLordRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'landlord_id' => 'required|exists:users,id',
-            'action' => 'required|in:create,update,delete,toggle_status',
-            'property_id' => 'required_unless:action,create|exists:properties,id',
-            // Property creation/update fields
-            'title' => 'required_if:action,create|sometimes|string|max:255',
-            'description' => 'required_if:action,create|sometimes|string|max:2000',
-            'property_type' => 'required_if:action,create|sometimes|in:1_bedroom,2_bedroom,3_bedroom,4_bedroom,studio,duplex,bungalow',
-            'rent_amount' => 'required_if:action,create|sometimes|numeric|min:1000',
-            'location_address' => 'required_if:action,create|sometimes|string|max:500',
-            'state' => 'required_if:action,create|sometimes|string|max:100',
-            'lga' => 'required_if:action,create|sometimes|string|max:100',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'facilities' => 'nullable|array',
-            'facilities.*' => 'string|max:100',
-            'images' => 'required_if:action,create|sometimes|array|min:1|max:10',
-            'images.*' => 'image|mimes:jpeg,png,jpg|max:2048'
-        ], [
-            'images.required_if' => 'At least one image is required when creating a property',
-            'images.*.max' => 'Each image cannot exceed 2MB'
-        ]);
-
-        if ($validator->fails()) {
-            return [
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-                'status_code' => 422
-            ];
-        }
 
         $agent = $request->user();
         $landlord = User::findOrFail($request->landlord_id);
@@ -535,11 +496,7 @@ class AgentRepository
             ->first();
 
         if (!$assignment) {
-            return [
-                'success' => false,
-                'message' => 'You are not authorized to manage properties for this landlord',
-                'status_code' => 403
-            ];
+            throw new Exception("You are not authorized to manage listings for this landlord", 403);
         }
 
         $result = match ($request->action) {
@@ -565,11 +522,10 @@ class AgentRepository
             'info'
         );
 
-        return [
-            'success' => true,
-            'message' => ucfirst($request->action) . ' action completed successfully',
-            'data' => $result
-        ];
+        return ApiResponse::respond(
+            data: $result,
+            message: ucfirst($request->action) . ' action completed successfully',
+        );
     }
 
     /**
@@ -873,11 +829,10 @@ class AgentRepository
             'recent_activities' => $this->getRecentAgentActivities($agent->id)
         ];
 
-        return [
-            'success' => true,
-            'message' => 'Agent statistics retrieved successfully',
-            'data' => $stats
-        ];
+        return ApiResponse::respond(
+            message: 'Agent statistics retrieved successfully',
+            data: $stats
+        );
     }
 
     /**
@@ -894,16 +849,11 @@ class AgentRepository
         ]);
 
         if ($validator->fails()) {
-            return [
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-                'status_code' => 422
-            ];
+            throw new Exception($validator->errors()->first(), 422);
         }
 
         $agent = $request->user();
-        
+
         // Update agent profile with availability status
         $agent->profile->update([
             'is_available' => $request->is_available,
@@ -926,15 +876,14 @@ class AgentRepository
             'info'
         );
 
-        return [
-            'success' => true,
-            'message' => 'Availability status updated successfully',
-            'data' => [
+        return ApiResponse::respond(
+            message: 'Availability status updated successfully',
+            data: [
                 'is_available' => $request->is_available,
                 'notes' => $request->availability_notes,
                 'updated_at' => now()->toISOString()
             ]
-        ];
+        );
     }
 
     /**
@@ -946,7 +895,7 @@ class AgentRepository
     public function getAgentEarnings(Request $request)
     {
         $agent = $request->user();
-        
+
         // Get earnings from rent payments and property verifications
         $earnings = [
             'total_earnings' => 0,
@@ -966,11 +915,10 @@ class AgentRepository
         $earnings['total_earnings'] = array_sum(array_values($earnings['breakdown']));
         $earnings['current_month_earnings'] = $this->getCurrentMonthEarnings($agent->id);
 
-        return [
-            'success' => true,
-            'message' => 'Agent earnings retrieved successfully',
-            'data' => $earnings
-        ];
+        return ApiResponse::respond(
+            message: 'Agent earnings retrieved successfully',
+            data: $earnings
+        );
     }
 
     /**
@@ -993,12 +941,7 @@ class AgentRepository
         ]);
 
         if ($validator->fails()) {
-            return [
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-                'status_code' => 422
-            ];
+            throw new \InvalidArgumentException($validator->errors()->first(), 422);
         }
 
         $agent = $request->user();
@@ -1050,16 +993,15 @@ class AgentRepository
             $request->priority === 'urgent' ? 'warning' : 'info'
         );
 
-        return [
-            'success' => true,
-            'message' => 'Report submitted successfully',
-            'data' => [
+        return ApiResponse::respond(
+            message: 'Report submitted successfully',
+            data: [
                 'report_id' => uniqid('RPT'),
                 'status' => 'submitted',
                 'submitted_at' => now()->toISOString(),
                 'attachments_count' => count($attachmentUrls)
             ]
-        ];
+        );
     }
 
     /**
@@ -1175,7 +1117,7 @@ class AgentRepository
         $verifications = PropertyVerification::where('agent_id', $agentId)
             ->where('status', 'verified')
             ->count();
-        
+
         // Mock calculation - ₦2000 per successful verification
         return $verifications * 2000;
     }
@@ -1235,13 +1177,13 @@ class AgentRepository
     private function getRecommendedCourses($agentId)
     {
         $successRate = $this->calculateVerificationSuccessRate($agentId);
-        
+
         if ($successRate < 80) {
             return ['Property Verification Basics', 'Quality Control Standards'];
         } elseif ($successRate < 95) {
             return ['Advanced Property Assessment', 'Documentation Best Practices'];
         }
-        
+
         return ['Leadership for Agents', 'Business Development'];
     }
 
@@ -1250,7 +1192,7 @@ class AgentRepository
      */
     private function formatActivityDescription($log)
     {
-        return match($log->action) {
+        return match ($log->action) {
             'property_verification_completed' => 'Completed property verification',
             'agent_availability_updated' => 'Updated availability status',
             'agent_report_submitted' => 'Submitted a report',

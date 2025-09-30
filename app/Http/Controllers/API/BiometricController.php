@@ -26,8 +26,8 @@ class BiometricController extends Controller
      */
     public function enroll(BiometricEnrollRequest $request): JsonResponse
     {
-        $user = Auth::user();
-        
+        $user = auth('sanctum')->user();
+
         if (!$user) {
             return ApiResponse::respond(
                 status: false,
@@ -75,8 +75,8 @@ class BiometricController extends Controller
      */
     public function disable(): JsonResponse
     {
-        $user = Auth::user();
-        
+        $user = auth('sanctum')->user();
+
         if (!$user) {
             return ApiResponse::respond(
                 status: false,
@@ -102,10 +102,10 @@ class BiometricController extends Controller
      * 
      * @return JsonResponse
      */
-    public function status(): JsonResponse
+    public function status()
     {
-        $user = Auth::user();
-        
+        $user = auth('sanctum')->user();
+
         if (!$user) {
             return ApiResponse::respond(
                 status: false,
@@ -125,8 +125,8 @@ class BiometricController extends Controller
      */
     public function attempts(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        
+        $user = auth('sanctum')->user();
+
         if (!$user) {
             return ApiResponse::respond(
                 status: false,
@@ -136,13 +136,14 @@ class BiometricController extends Controller
         }
 
         $hours = $request->input('hours', 24);
-        
+
         if ($hours > 168) { // Max 7 days
             $hours = 168;
         }
 
         return $this->biometricService->getAuthenticationAttempts($user, $hours);
     }
+
 
     /**
      * Re-enroll biometric data (update existing enrollment)
@@ -152,8 +153,8 @@ class BiometricController extends Controller
      */
     public function reenroll(BiometricEnrollRequest $request): JsonResponse
     {
-        $user = Auth::user();
-        
+        $user = auth('sanctum')->user();
+
         if (!$user) {
             return ApiResponse::respond(
                 status: false,
@@ -173,7 +174,7 @@ class BiometricController extends Controller
 
         // Disable current biometric first
         $this->biometricService->disableBiometric($user);
-        
+
         // Re-enroll with new data
         $refreshedUser = User::find($user->id);
         return $this->biometricService->enrollBiometric(

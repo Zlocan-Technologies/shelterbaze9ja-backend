@@ -5,6 +5,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Agent\ManageListingForLandLordRequest;
 use App\Http\Requests\Agent\VerifyPropertyRequest;
 use App\Models\User;
 use App\Models\AgentAssignment;
@@ -24,11 +25,7 @@ use Carbon\Carbon;
 class AgentController extends Controller
 {
 
-    public function __construct(
-        private FileUploadService $fileUploadService,
-        private NotificationService $notificationService,
-        private AgentRepository $agentRepository
-    ) {}
+    public function __construct(private AgentRepository $agentRepository) {}
 
 
     /**
@@ -52,7 +49,7 @@ class AgentController extends Controller
      */
     public function getAssignedProperties(Request $request)
     {
-       return (new ResponseHandler())->execute(function () use ($request) {
+        return (new ResponseHandler())->execute(function () use ($request) {
             return $this->agentRepository->getAssignedProperties($request);
         });
     }
@@ -89,11 +86,9 @@ class AgentController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function manageListingForLandlord(Request $request)
+    public function manageListingForLandlord(ManageListingForLandLordRequest $request)
     {
-        return (new ResponseHandler())->executeTransaction(function () use ($request) {
-            return $this->agentRepository->manageListingForLandlord($request);
-        });
+        return (new ResponseHandler())->executeTransaction(fn() => $this->agentRepository->manageListingForLandlord($request));
     }
 
     /**
@@ -102,12 +97,12 @@ class AgentController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getVerificationHistory(Request $request)
-    {
-        return (new ResponseHandler())->execute(function () use ($request) {
-            return $this->agentRepository->getVerificationHistory($request);
-        });
-    }
+    // public function getVerificationHistory(Request $request)
+    // {
+    //     return (new ResponseHandler())->execute(function () use ($request) {
+    //         return $this->agentRepository->getVerificationHistory($request);
+    //     });
+    // }
 
     /**
      * Get agent performance statistics and dashboard
@@ -117,9 +112,7 @@ class AgentController extends Controller
      */
     public function getAgentStats(Request $request)
     {
-        return (new ResponseHandler())->execute(function () use ($request) {
-            return $this->agentRepository->getAgentStats($request);
-        });
+        return (new ResponseHandler())->execute(fn () => $this->agentRepository->getAgentStats($request));
     }
 
     /**
@@ -167,12 +160,10 @@ class AgentController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getAgentTrainingResources(Request $request)
-    {
-        return (new ResponseHandler())->execute(function () use ($request) {
-            return $this->agentRepository->getAgentTrainingResources($request);
-        });
-    }
-
-
+    // public function getAgentTrainingResources(Request $request)
+    // {
+    //     return (new ResponseHandler())->execute(function () use ($request) {
+    //         return $this->agentRepository->getAgentTrainingResources($request);
+    //     });
+    // }
 }

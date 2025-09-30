@@ -117,14 +117,14 @@ class BiometricService
             }
 
             // Check account status
-            if ($user->account_status !== 'active') {
-                return ApiResponse::respond(
-                    status: false,
-                    message: 'Account is not active',
-                    statusCode: 403,
-                    errors: ['Your account status is: ' . $user->account_status]
-                );
-            }
+            // if ($user->account_status !== 'active') {
+            //     return ApiResponse::respond(
+            //         status: false,
+            //         message: 'Account is not active',
+            //         statusCode: 403,
+            //         errors: ['Your account status is: ' . $user->account_status]
+            //     );
+            // }
 
             // Generate token
             $token = $user->createToken('biometric-auth', ['*'], now()->addDays(30))->plainTextToken;
@@ -223,9 +223,7 @@ class BiometricService
     public function getBiometricStatus(User $user): JsonResponse
     {
         return ApiResponse::respond(
-            status: true,
             message: 'Biometric status retrieved',
-            statusCode: 200,
             data: [
                 'biometric_enabled' => $user->biometric_enabled,
                 'enrolled_at' => $user->biometric_enrolled_at,

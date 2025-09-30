@@ -139,7 +139,15 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('savings-mgt')->group(fu
 
 //routes for agent module
 Route::middleware(['auth:sanctum', 'verified'])->prefix('agents')->group(function () {
-    Route::get('/assigned-properties', [AgentController::class, 'getAssignedProperties']);
-    Route::post('/verify-property', [AgentController::class, 'verifyProperty']);
-    Route::get('/assigned-landlords', [AgentController::class, 'getAssignedLandlords']);
+    Route::get('/assigned-properties', [AgentController::class, 'getAssignedProperties']); //done
+    Route::post('/verify-property', [AgentController::class, 'verifyProperty']); //done
+    Route::get('/assigned-landlords', [AgentController::class, 'getAssignedLandlords']);//done
+    Route::post('/manage-listing-for-landlord', [AgentController::class, 'manageListingForLandlord']);
+    Route::get('/stats', [AgentController::class, 'getAgentStats']); // done
+    Route::post('/verify-agent', [AgentController::class, 'verifyAgent']); //done // confirm agent's identity using their ID
+
+    Route::post('/update-availability', [AgentController::class, 'updateAgentAvailability']); //done
+
+    Route::get('/earnings', [AgentController::class, 'getAgentEarnings']); //done
+    Route::post('/submit-report', [AgentController::class, 'submitAgentReport']);
 });
