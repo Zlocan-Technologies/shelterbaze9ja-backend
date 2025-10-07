@@ -23,7 +23,7 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-      protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
 
     protected static ?string $recordTitleAttribute = 'Tenants';
@@ -84,5 +84,10 @@ class UserResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

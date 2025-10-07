@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AgentController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\Api\BiometricController;
 use App\Http\Controllers\API\ChatController;
 use App\Http\Controllers\API\EngagementController;
 use App\Http\Controllers\API\NotificationController;
@@ -18,6 +19,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/password/forgot', [AuthController::class, 'forgotPassword']);
+    
+    // Biometric authentication routes
+    Route::post('/biometric/authenticate', [BiometricController::class, 'authenticate']);
 });
 
 Route::prefix('/savings')->group(function () {
@@ -35,6 +39,15 @@ Route::prefix('engagement')->group(function () {
 Route::middleware(['auth:sanctum', 'verified'])->prefix('auth')->group(function () {
     Route::post('/refreshToken', [AuthController::class, 'refreshToken']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Protected biometric routes
+    Route::prefix('biometric')->group(function () {
+        Route::post('/enroll', [BiometricController::class, 'enroll']);
+        Route::delete('/disable', [BiometricController::class, 'disable']);
+        Route::get('/status', [BiometricController::class, 'status']);
+        Route::get('/attempts', [BiometricController::class, 'attempts']);
+        Route::put('/reenroll', [BiometricController::class, 'reenroll']);
+    });
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('profile')->group(function () {
@@ -126,7 +139,15 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('savings-mgt')->group(fu
 
 //routes for agent module
 Route::middleware(['auth:sanctum', 'verified'])->prefix('agents')->group(function () {
-    Route::get('/assigned-properties', [AgentController::class, 'getAssignedProperties']);
-    Route::post('/verify-property', [AgentController::class, 'verifyProperty']);
-    Route::get('/assigned-landlords', [AgentController::class, 'getAssignedLandlords']);
+    Route::get('/assigned-properties', [AgentController::class, 'getAssignedProperties']); //done
+    Route::post('/verify-property', [AgentController::class, 'verifyProperty']); //done
+    Route::get('/assigned-landlords', [AgentController::class, 'getAssignedLandlords']);//done
+    Route::post('/manage-listing-for-landlord', [AgentController::class, 'manageListingForLandlord']);
+    Route::get('/stats', [AgentController::class, 'getAgentStats']); // done
+    Route::post('/verify-agent', [AgentController::class, 'verifyAgent']); //done // confirm agent's identity using their ID
+
+    Route::post('/update-availability', [AgentController::class, 'updateAgentAvailability']); //done
+
+    Route::get('/earnings', [AgentController::class, 'getAgentEarnings']); //done
+    Route::post('/submit-report', [AgentController::class, 'submitAgentReport']);
 });

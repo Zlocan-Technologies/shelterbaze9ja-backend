@@ -26,19 +26,27 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'account_status',
         'email_verified_at',
         'phone_verified_at',
-        'fcm_token'
+        'fcm_token',
+        'biometric_data',
+        'biometric_enabled',
+        'biometric_enrolled_at',
+        'device_id'
     ];
 
     protected $hidden = [
         'password',
-        'remember_token'
+        'remember_token',
+        'biometric_data'
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'profile_completed' => 'boolean',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
+        'biometric_data' => 'array',
+        'biometric_enabled' => 'boolean',
+        'biometric_enrolled_at' => 'datetime'
     ];
 
     // Constants for roles

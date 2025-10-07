@@ -16,15 +16,25 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-// use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class AuditLogResource extends Resource
 {
     protected static ?string $model = AuditLog::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEye;
 
-    protected static ?string $recordTitleAttribute = 'AuditLog';
+    protected static ?string $recordTitleAttribute = 'id';
+    
+    protected static ?string $modelLabel = 'Audit Log';
+    
+    protected static ?string $pluralModelLabel = 'Audit Logs';
+    
+    protected static string | UnitEnum | null $navigationGroup = 'System Management';
+
+    protected static ?string $navigationLabel = 'Audit Logs';
+
+    protected static ?int $navigationSort = 5;
 
     public static function form(Schema $schema): Schema
     {
@@ -52,9 +62,8 @@ class AuditLogResource extends Resource
     {
         return [
             'index' => ListAuditLogs::route('/'),
-            'create' => CreateAuditLog::route('/create'),
             'view' => ViewAuditLog::route('/{record}'),
-            'edit' => EditAuditLog::route('/{record}/edit'),
+            // Create and Edit removed - audit logs should not be manually created/edited
         ];
     }
 
@@ -63,6 +72,43 @@ class AuditLogResource extends Resource
         return parent::getRecordRouteBindingEloquentQuery()
             ->withoutGlobalScopes([
                 // SoftDeletingScope::class,
-            ]);
+            ])
+            ->orderBy('created_at', 'desc'); // Show newest first
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'user.first_name',
+            'user.last_name',
+            'action',
+            'model_type',
+            'ip_address',
+        ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
+
+    public static function canCreate(): bool
+    {
+        return false; // Audit logs should not be manually created
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false; // Audit logs should not be edited
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false; // Audit logs should not be deleted
     }
 }

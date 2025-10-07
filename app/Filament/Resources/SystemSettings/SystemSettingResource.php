@@ -16,6 +16,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
+
 // use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SystemSettingResource extends Resource
@@ -25,6 +27,8 @@ class SystemSettingResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'SystemSetting';
+    
+    protected static string | UnitEnum | null $navigationGroup = 'System Management';
 
     public static function form(Schema $schema): Schema
     {

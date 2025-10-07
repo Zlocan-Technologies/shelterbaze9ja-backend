@@ -16,15 +16,25 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-// use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class SupportTicketResource extends Resource
 {
     protected static ?string $model = SupportTicket::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
-    protected static ?string $recordTitleAttribute = 'SupportTicket';
+    protected static ?string $recordTitleAttribute = 'ticket_number';
+    
+    protected static ?string $modelLabel = 'Support Ticket';
+    
+    protected static ?string $pluralModelLabel = 'Support Tickets';
+    
+    protected static string | UnitEnum | null $navigationGroup = 'Customer Support';
+
+    protected static ?string $navigationLabel = 'Support Tickets';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {
@@ -63,6 +73,39 @@ class SupportTicketResource extends Resource
         return parent::getRecordRouteBindingEloquentQuery()
             ->withoutGlobalScopes([
                 // SoftDeletingScope::class,
-            ]);
+            ])
+            ->orderBy('created_at', 'desc'); // Show newest first
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'ticket_number',
+            'subject',
+            'description',
+            'user.first_name',
+            'user.last_name',
+            'property.title',
+        ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::whereIn('status', ['open', 'in_progress'])->count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        $openCount = static::getModel()::where('status', 'open')->count();
+        $highPriorityCount = static::getModel()::where('priority', 'high')
+            ->whereIn('status', ['open', 'in_progress'])->count();
+        
+        if ($highPriorityCount > 0) {
+            return 'danger';
+        } elseif ($openCount > 0) {
+            return 'warning';
+        }
+        
+        return 'success';
     }
 }
