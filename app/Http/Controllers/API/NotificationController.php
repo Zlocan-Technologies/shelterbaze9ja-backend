@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\User;
+use App\Util\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -46,11 +47,10 @@ class NotificationController extends Controller
         $notifications = $query->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $notifications,
-            'message' => 'Notifications retrieved successfully'
-        ]);
+        return ApiResponse::respond(
+            message: 'Notifications retrieved successfully',
+            data: $notifications
+        );
     }
 
     /**
@@ -64,61 +64,59 @@ class NotificationController extends Controller
             ->unread()
             ->count();
 
-        return response()->json([
-            'success' => true,
-            'data' => ['unread_count' => $unreadCount],
-            'message' => 'Unread count retrieved successfully'
-        ]);
+        return ApiResponse::respond(
+            message: 'Unread count retrieved successfully',
+            data: ['unread_count' => $unreadCount]
+        );
     }
 
     /**
      * Get recent notifications (last 10)
      */
-    public function getRecent(): JsonResponse
-    {
-        $user = Auth::user();
+    // public function getRecent(): JsonResponse
+    // {
+    //     $user = Auth::user();
         
-        $recentNotifications = Notification::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
+    //     $recentNotifications = Notification::where('user_id', $user->id)
+    //         ->orderBy('created_at', 'desc')
+    //         ->limit(10)
+    //         ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $recentNotifications,
-            'message' => 'Recent notifications retrieved successfully'
-        ]);
-    }
+    //     return ApiResponse::respond(
+    //         message: 'Recent notifications retrieved successfully',
+    //         data: $recentNotifications
+    //     );
+    // }
 
     /**
      * Get a specific notification
      */
-    public function show($id): JsonResponse
-    {
-        $user = Auth::user();
+    // public function show($id): JsonResponse
+    // {
+    //     $user = Auth::user();
         
-        $notification = Notification::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+    //     $notification = Notification::where('id', $id)
+    //         ->where('user_id', $user->id)
+    //         ->first();
 
-        if (!$notification) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Notification not found'
-            ], 404);
-        }
+    //     if (!$notification) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Notification not found'
+    //         ], 404);
+    //     }
 
-        // Mark as read when viewed
-        if ($notification->isUnread()) {
-            $notification->markAsRead();
-        }
+    //     // Mark as read when viewed
+    //     if ($notification->isUnread()) {
+    //         $notification->markAsRead();
+    //     }
 
-        return response()->json([
-            'success' => true,
-            'data' => $notification,
-            'message' => 'Notification retrieved successfully'
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $notification,
+    //         'message' => 'Notification retrieved successfully'
+    //     ]);
+    // }
 
     /**
      * Mark a specific notification as read
@@ -132,47 +130,47 @@ class NotificationController extends Controller
             ->first();
 
         if (!$notification) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Notification not found'
-            ], 404);
+            return ApiResponse::respond(
+                status: false,
+                message: 'Notification not found',
+                statusCode: 404
+            );
         }
 
         $notification->markAsRead();
 
-        return response()->json([
-            'success' => true,
-            'data' => $notification,
-            'message' => 'Notification marked as read'
-        ]);
+        return ApiResponse::respond(
+            message: 'Notification marked as read',
+            data: $notification
+        );
     }
 
     /**
      * Mark a specific notification as unread
      */
-    public function markAsUnread($id): JsonResponse
-    {
-        $user = Auth::user();
+    // public function markAsUnread($id): JsonResponse
+    // {
+    //     $user = Auth::user();
         
-        $notification = Notification::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+    //     $notification = Notification::where('id', $id)
+    //         ->where('user_id', $user->id)
+    //         ->first();
 
-        if (!$notification) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Notification not found'
-            ], 404);
-        }
+    //     if (!$notification) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Notification not found'
+    //         ], 404);
+    //     }
 
-        $notification->markAsUnread();
+    //     $notification->markAsUnread();
 
-        return response()->json([
-            'success' => true,
-            'data' => $notification,
-            'message' => 'Notification marked as unread'
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $notification,
+    //         'message' => 'Notification marked as unread'
+    //     ]);
+    // }
 
     /**
      * Mark all notifications as read
@@ -185,44 +183,43 @@ class NotificationController extends Controller
             ->unread()
             ->update(['is_read' => true]);
 
-        return response()->json([
-            'success' => true,
-            'data' => ['updated_count' => $updatedCount],
-            'message' => 'All notifications marked as read'
-        ]);
+        return ApiResponse::respond(
+            message: 'All notifications marked as read',
+            data: ['updated_count' => $updatedCount]
+        );
     }
 
     /**
      * Mark multiple notifications as read
      */
-    public function markMultipleAsRead(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'notification_ids' => 'required|array',
-            'notification_ids.*' => 'integer|exists:notifications,id'
-        ]);
+    // public function markMultipleAsRead(Request $request): JsonResponse
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'notification_ids' => 'required|array',
+    //         'notification_ids.*' => 'integer|exists:notifications,id'
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Validation failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
 
-        $user = Auth::user();
+    //     $user = Auth::user();
         
-        $updatedCount = Notification::whereIn('id', $request->notification_ids)
-            ->where('user_id', $user->id)
-            ->unread()
-            ->update(['is_read' => true]);
+    //     $updatedCount = Notification::whereIn('id', $request->notification_ids)
+    //         ->where('user_id', $user->id)
+    //         ->unread()
+    //         ->update(['is_read' => true]);
 
-        return response()->json([
-            'success' => true,
-            'data' => ['updated_count' => $updatedCount],
-            'message' => 'Selected notifications marked as read'
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => ['updated_count' => $updatedCount],
+    //         'message' => 'Selected notifications marked as read'
+    //     ]);
+    // }
 
     /**
      * Delete a specific notification
@@ -253,51 +250,51 @@ class NotificationController extends Controller
     /**
      * Delete multiple notifications
      */
-    public function deleteMultiple(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'notification_ids' => 'required|array',
-            'notification_ids.*' => 'integer|exists:notifications,id'
-        ]);
+    // public function deleteMultiple(Request $request): JsonResponse
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'notification_ids' => 'required|array',
+    //         'notification_ids.*' => 'integer|exists:notifications,id'
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Validation failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
 
-        $user = Auth::user();
+    //     $user = Auth::user();
         
-        $deletedCount = Notification::whereIn('id', $request->notification_ids)
-            ->where('user_id', $user->id)
-            ->delete();
+    //     $deletedCount = Notification::whereIn('id', $request->notification_ids)
+    //         ->where('user_id', $user->id)
+    //         ->delete();
 
-        return response()->json([
-            'success' => true,
-            'data' => ['deleted_count' => $deletedCount],
-            'message' => 'Selected notifications deleted successfully'
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => ['deleted_count' => $deletedCount],
+    //         'message' => 'Selected notifications deleted successfully'
+    //     ]);
+    // }
 
     /**
      * Delete all read notifications
      */
-    public function deleteAllRead(): JsonResponse
-    {
-        $user = Auth::user();
+    // public function deleteAllRead(): JsonResponse
+    // {
+    //     $user = Auth::user();
         
-        $deletedCount = Notification::where('user_id', $user->id)
-            ->read()
-            ->delete();
+    //     $deletedCount = Notification::where('user_id', $user->id)
+    //         ->read()
+    //         ->delete();
 
-        return response()->json([
-            'success' => true,
-            'data' => ['deleted_count' => $deletedCount],
-            'message' => 'All read notifications deleted successfully'
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => ['deleted_count' => $deletedCount],
+    //         'message' => 'All read notifications deleted successfully'
+    //     ]);
+    // }
 
     /**
      * Get notification statistics

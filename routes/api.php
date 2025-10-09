@@ -10,6 +10,7 @@ use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\PropertyController;
 use App\Http\Controllers\API\RentPaymentController;
 use App\Http\Controllers\API\RentSavingsController;
+use App\Http\Controllers\API\SupportController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -41,19 +42,23 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('auth')->group(function 
     Route::post('/logout', [AuthController::class, 'logout']);
     
     // Protected biometric routes
-    Route::prefix('biometric')->group(function () {
-        Route::post('/enroll', [BiometricController::class, 'enroll']);
-        Route::delete('/disable', [BiometricController::class, 'disable']);
-        Route::get('/status', [BiometricController::class, 'status']);
-        Route::get('/attempts', [BiometricController::class, 'attempts']);
-        Route::put('/reenroll', [BiometricController::class, 'reenroll']);
-    });
+    // Route::prefix('biometric')->group(function () {
+    //     Route::post('/enroll', [BiometricController::class, 'enroll']);
+    //     Route::delete('/disable', [BiometricController::class, 'disable']);
+    //     Route::get('/status', [BiometricController::class, 'status']);
+    //     Route::get('/attempts', [BiometricController::class, 'attempts']);
+    //     Route::put('/reenroll', [BiometricController::class, 'reenroll']);
+    // });
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('profile')->group(function () {
     Route::post('/complete-profile', [ProfileController::class, 'completeProfile']);
+    Route::post('/upload-document', [ProfileController::class, 'uploadDocument']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/update-fcm-token', [AuthController::class, 'updateFcmToken']);
+    Route::post('/create-transaction-pin', [ProfileController::class, 'createTransactionPin']);
+    Route::post('/reset-transaction-pin', [ProfileController::class, 'resetTransactionPin']);
+    Route::post('/forgot-transaction-pin', [ProfileController::class, 'forgotTransactionPin']);
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('listing')->group(function () {
@@ -88,22 +93,22 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('rent')->group(function 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('notifications')->group(function () {
     // User routes
     Route::get('/', [NotificationController::class, 'index']);
-    Route::get('/unread-count', [NotificationController::class, 'getUnreadCount']);
-    Route::get('/recent', [NotificationController::class, 'getRecent']);
-    Route::get('/stats', [NotificationController::class, 'getStats']);
-    Route::get('/{id}', [NotificationController::class, 'show']);
+    Route::get('/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread_count');
+    // Route::get('/recent', [NotificationController::class, 'getRecent']);
+    // Route::get('/stats', [NotificationController::class, 'getStats']);
+    // Route::get('/{id}', [NotificationController::class, 'show']);
     Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
-    Route::patch('/{id}/unread', [NotificationController::class, 'markAsUnread']);
+    // Route::patch('/{id}/unread', [NotificationController::class, 'markAsUnread']);
     Route::patch('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
-    Route::patch('/mark-multiple-read', [NotificationController::class, 'markMultipleAsRead']);
-    Route::delete('/{id}', [NotificationController::class, 'destroy']);
-    Route::delete('/multiple', [NotificationController::class, 'deleteMultiple']);
-    Route::delete('/read', [NotificationController::class, 'deleteAllRead']);
+    // Route::patch('/mark-multiple-read', [NotificationController::class, 'markMultipleAsRead']);
+    // Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    // Route::delete('/multiple', [NotificationController::class, 'deleteMultiple']);
+    // Route::delete('/read', [NotificationController::class, 'deleteAllRead']);
 
     // Admin routes
-    Route::post('/', [NotificationController::class, 'store']);
-    Route::post('/bulk', [NotificationController::class, 'sendBulk']);
-    Route::post('/role', [NotificationController::class, 'sendToRole']);
+//     Route::post('/', [NotificationController::class, 'store']);
+//     Route::post('/bulk', [NotificationController::class, 'sendBulk']);
+//     Route::post('/role', [NotificationController::class, 'sendToRole']);
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('chat')->group(function () {
@@ -150,4 +155,9 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('agents')->group(functio
 
     Route::get('/earnings', [AgentController::class, 'getAgentEarnings']); //done
     Route::post('/submit-report', [AgentController::class, 'submitAgentReport']);
+});
+
+Route::prefix('/support')->group(function () {
+    Route::get('/faqs', [SupportController::class, 'getFaqs']);
+    Route::get('/amenities', [SupportController::class, 'getAmenities']);
 });

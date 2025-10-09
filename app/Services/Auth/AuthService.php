@@ -185,7 +185,7 @@ class AuthService implements IAuthService
         return ApiResponse::respond(
             data: [
                 'user' => $user->load([
-                    'profile',
+                    'profile','wallet'
                 ]),
                 'unreadNotificationsCount' => $user->unreadNotificationsCount
             ],

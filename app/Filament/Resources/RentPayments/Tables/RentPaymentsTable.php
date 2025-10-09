@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\RentPayments\Tables;
 
 use App\Models\AuditLog;
+use App\Models\RentPayment;
 use App\Services\NotificationService;
+use App\Services\Wallet\WalletService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -89,6 +91,13 @@ class RentPaymentsTable
                             'verified_at' => now(),
                             'status' => $data['status']
                         ]);
+
+                        //wallet will be funded when admin approves the payment
+                        if($data['status'] === RentPayment::STATUS_VERIFIED && $data['payment_type'] === RentPayment::TYPE_ONLINE){
+                            $walletService = new WalletService();
+                            $walletService->fundWallet($record->rentalAgreement->landlord, $record->amount);
+                        }
+
                         Notification::make()
                             ->title('Payment Updated Successfully!')
                             ->info()
