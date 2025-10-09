@@ -4,12 +4,17 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\CompleteProfileRequest;
+use App\Http\Requests\Profile\CreateTransactionPinRequest;
+use App\Http\Requests\Profile\ResetTransactionPinRequest;
+use App\Http\Requests\Profile\UploadDocumentRequest;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\AuditLog;
 use App\Repositories\ProfileRepository;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
+use App\Util\ApiResponse;
+use App\Util\ErrorHandler;
 use App\Util\ResponseHandler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,12 +23,13 @@ use Illuminate\Support\Facades\Validator;
 class ProfileController extends Controller
 {
 
+    use ErrorHandler;
+
     public function __construct(
-        private FileUploadService $fileUploadService, 
+        private FileUploadService $fileUploadService,
         private NotificationService $notificationService,
-        private ProfileRepository $profileRepository)
-    {
-    }
+        private ProfileRepository $profileRepository
+    ) {}
 
     public function show(Request $request)
     {
@@ -70,7 +76,6 @@ class ProfileController extends Controller
                 'message' => 'Profile updated successfully',
                 'data' => ['user' => $user->fresh()->load('profile')]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -82,71 +87,12 @@ class ProfileController extends Controller
 
     public function completeProfile(CompleteProfileRequest $request)
     {
-       return (new ResponseHandler())->execute(fn() => $this->profileRepository->completeProfile($request));
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->completeProfile($request));
     }
 
-    public function uploadDocument(Request $request)
+    public function uploadDocument(UploadDocumentRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
-            'document_type' => 'required|string|in:id_card,utility_bill,bank_statement',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $user = $request->user();
-
-            // Upload document
-            $documentUpload = $this->fileUploadService->uploadToCloudinary(
-                $request->file('document'),
-                'profiles/documents'
-            );
-
-            if (!$documentUpload['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to upload document',
-                    'error' => $documentUpload['error']
-                ], 500);
-            }
-
-            // Update verification documents
-            $verificationDocs = $user->profile->verification_documents ?? [];
-            $verificationDocs[$request->document_type] = $documentUpload['url'];
-
-            $user->profile()->update([
-                'verification_documents' => $verificationDocs
-            ]);
-
-            // Log document upload
-            AuditLog::log('document_uploaded', $user, null, [
-                'document_type' => $request->document_type,
-                'document_url' => $documentUpload['url']
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Document uploaded successfully',
-                'data' => [
-                    'document_url' => $documentUpload['url'],
-                    'document_type' => $request->document_type
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Document upload failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->uploadDocument($request));
     }
 
     public function getAgentIdCard(Request $request)
@@ -191,7 +137,6 @@ class ProfileController extends Controller
                 'success' => true,
                 'data' => ['id_card' => $idCardData]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -245,7 +190,6 @@ class ProfileController extends Controller
                 'success' => true,
                 'message' => 'Password changed successfully'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -253,5 +197,20 @@ class ProfileController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function createTransactionPin(CreateTransactionPinRequest $request)
+    {
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->createTransactionPin($request));
+    }
+
+    public function forgotTransactionPin(Request $request)
+    {
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->forgotTransactionPin($request));
+    }
+
+    public function resetTransactionPin(ResetTransactionPinRequest $request)
+    {
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->resetTransactionPin($request));
     }
 }

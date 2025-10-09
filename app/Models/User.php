@@ -30,11 +30,13 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'biometric_data',
         'biometric_enabled',
         'biometric_enrolled_at',
-        'device_id'
+        'device_id',
+        'txn_pin'
     ];
 
     protected $hidden = [
         'password',
+        'txn_pin',
         'remember_token',
         'biometric_data'
     ];
@@ -46,7 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'deleted_at' => 'datetime',
         'biometric_data' => 'array',
         'biometric_enabled' => 'boolean',
-        'biometric_enrolled_at' => 'datetime'
+        'biometric_enrolled_at' => 'datetime',
+        'txn_pin' => 'hashed'
     ];
 
     // Constants for roles

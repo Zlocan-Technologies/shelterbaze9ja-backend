@@ -9,9 +9,11 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             // SystemSettingsSeeder::class,
-            AdminUserSeeder::class,
+            // AdminUserSeeder::class,
             // StatesAndLgasSeeder::class,
             // WalletSeeder::class,
+            AmenitySeeder::class,
+            HelpCenterFaqSeeder::class,
         ]);
     }
 }

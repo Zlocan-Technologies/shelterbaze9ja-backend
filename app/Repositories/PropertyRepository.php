@@ -63,6 +63,9 @@ class PropertyRepository
             $properties->getCollection()->transform(function ($property) use ($userId) {
                 $property->is_favorited = $property->isFavoritedBy($userId);
                 $property->has_paid_engagement_fee = $property->hasUserPaidEngagementFee($userId);
+                $property->agent_review = $property->verifications->pluck('verification_notes')->flatten()->first() ?? null;
+                
+                unset($property->verifications);
                 return $property;
             });
         }
@@ -284,9 +287,17 @@ class PropertyRepository
             return $property;
         });
 
+        //get total earnings
+        $payments = RentPayment::whereHas('rentalAgreement', function ($q) use ($user) {
+            $q->where('landlord_id', $user->id);
+        })->where('status', RentPayment::STATUS_VERIFIED)->get();
+
         return ApiResponse::respond(
             message: 'Success!',
-            data: $properties
+            data:  [
+                'total_earnings' => $payments->sum('amount'),
+                'properties' => $properties
+            ],
         );
     }
 
@@ -489,7 +500,6 @@ class PropertyRepository
             data: ['media' => $media]
         );
     }
-
 
     private function checkUserIsLandLord($user)
     {
