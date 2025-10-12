@@ -12,7 +12,8 @@ class WithdrawalInfolist
         return $schema
             ->components([
                 TextEntry::make('user_id')
-                    ->numeric(),
+                    ->label('User')
+                    ->getStateUsing(fn($record) => $record->user ? $record->user->name : 'N/A'),
                 TextEntry::make('amount')
                     ->numeric(),
                 TextEntry::make('bank_name'),

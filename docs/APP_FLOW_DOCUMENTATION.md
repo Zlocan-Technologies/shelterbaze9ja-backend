@@ -9,12 +9,27 @@
 6. [Agent Journey](#agent-journey)
 7. [Property Rental Process](#property-rental-process)
 8. [Payment System](#payment-system)
-9. [Communication & Support](#communication--support)
-10. [Additional Features](#additional-features)
+9. [Wallet & Withdrawal System](#wallet--withdrawal-system)
+10. [Communication & Support](#communication--support)
+11. [Email Notification System](#email-notification-system)
+12. [Biometric Authentication](#biometric-authentication)
+13. [Automated Jobs & Scheduling](#automated-jobs--scheduling)
+14. [Additional Features](#additional-features)
 
 ## Overview
 
-ShelterBaze is a comprehensive property rental platform that connects tenants, landlords, and agents in Nigeria. The platform facilitates the entire rental process from property discovery to payment management, with features like rent savings, property verification, and communication tools.
+ShelterBaze is a comprehensive property rental platform that connects tenants, landlords, and agents in Nigeria. The platform facilitates the entire rental process from property discovery to payment management, with advanced features like rent savings, property verification, biometric authentication, automated withdrawal processing, and comprehensive communication tools.
+
+**Key Platform Features:**
+- Multi-role user management (Tenants, Landlords, Agents, Admins)
+- Property listing and verification system
+- Integrated payment processing with multiple gateways
+- Advanced wallet and withdrawal management
+- Biometric authentication for enhanced security
+- Automated job scheduling for agreement management
+- Comprehensive email notification system
+- Real-time chat and communication tools
+- Analytics and insights dashboard
 
 ## User Roles
 
@@ -326,6 +341,76 @@ The platform supports four distinct user roles:
   - Monthly payment analytics
   - Property performance insights
 
+## Wallet & Withdrawal System
+
+### 1. Digital Wallet Management
+- **Purpose**: Centralized fund management for all platform transactions
+- **Features**:
+  - Real-time balance tracking
+  - Transaction history
+  - Multi-currency support (NGN primary)
+  - Secure fund storage
+
+### 2. Withdrawal Process
+
+#### Withdrawal Request Submission
+- **Endpoints**: 
+  - `POST /api/wallet/withdraw` - Submit withdrawal request
+  - `GET /api/wallet/withdrawals` - View withdrawal history
+  
+- **Required Information**:
+  - Withdrawal amount
+  - Bank name
+  - Account number
+  - Account name
+  - User verification
+
+#### Admin Processing Workflow
+- **Filament Admin Interface**: Withdrawal management table
+- **Status Flow**: `pending` → `processing` → `paid` / `rejected`
+- **Actions Available**:
+  - Approve withdrawal (status: `paid`)
+  - Reject withdrawal (status: `rejected` with reason)
+  - Mark as processing (status: `processing`)
+
+#### Automated Actions on Status Change
+
+##### For Successful Withdrawals (`paid`)
+1. **Wallet Debit**: Automatic deduction from user wallet
+2. **Email Notification**: Professional success email with:
+   - Transaction timeline
+   - Bank processing information (1-3 business days)
+   - Transaction reference
+   - Payment receipt details
+3. **In-App Notification**: Success notification with transaction details
+
+##### For Rejected Withdrawals (`rejected`)
+1. **Fund Security**: Amount remains in user wallet
+2. **Email Notification**: Professional rejection email with:
+   - Clear rejection reason
+   - Next steps guidance
+   - Funds safety assurance
+   - Support contact information
+3. **In-App Notification**: Rejection notification with reason
+
+### 3. Email Templates
+
+#### Unified Template System
+- **Main Template**: `withdrawal_status.blade.php`
+- **Dynamic Styling**: Status-based colors and content
+- **Responsive Design**: Mobile and desktop optimized
+
+#### Template Features
+- **Success Template**: Celebration graphics, timeline, bank info
+- **Rejection Template**: Clear messaging, reason display, next steps
+- **Shared Components**: Professional branding, support info, company footer
+
+### 4. Security Features
+- **Two-Factor Authentication**: Required for large withdrawals
+- **Daily Limits**: Configurable withdrawal limits
+- **Fraud Detection**: Automated suspicious activity monitoring
+- **Admin Verification**: Manual review for high-value transactions
+
 ## Communication & Support
 
 ### 1. Chat System
@@ -358,6 +443,127 @@ The platform supports four distinct user roles:
 - FAQ and help center
 - Direct admin support
 
+## Email Notification System
+
+### 1. Comprehensive Email Templates
+
+#### Rent Payment Notifications
+- **Template**: `rent_payment_status.blade.php`
+- **Triggers**: Payment status changes, payment reminders
+- **Features**:
+  - Status-specific messaging and styling
+  - Property and payment details
+  - Responsive design for all devices
+  - Professional branding and layout
+
+#### Withdrawal Status Notifications
+- **Template**: `withdrawal_status.blade.php` (unified template)
+- **Sub-templates**:
+  - `withdrawal_successful.blade.php` - Success notifications
+  - `withdrawal_rejected.blade.php` - Rejection notifications
+- **Features**:
+  - Dynamic content based on withdrawal status
+  - Timeline visualization for successful withdrawals
+  - Clear reason display for rejections
+  - Call-to-action buttons and support information
+
+### 2. Email Template Architecture
+
+#### Design Features
+- **Professional Layout**: Modern, clean design with gradient headers
+- **Responsive Design**: Optimized for mobile and desktop viewing
+- **Status-based Styling**: Dynamic colors (green for success, red for rejection)
+- **Brand Consistency**: Unified ShelterBaze9ja branding across all templates
+
+#### Content Components
+- **Personalized Greetings**: User name integration
+- **Transaction Details**: Comprehensive information tables
+- **Status Indicators**: Visual badges and icons
+- **Next Steps**: Clear guidance for user actions
+- **Support Information**: Multiple contact channels
+- **Legal Footer**: Company info and disclaimers
+
+### 3. Automated Email Triggers
+
+#### System-Generated Emails
+- **Registration**: Welcome and verification emails
+- **Payment Processing**: Status updates and receipts
+- **Withdrawal Processing**: Status notifications
+- **Rental Management**: Agreement updates and renewals
+- **Property Updates**: Listing status changes
+
+#### Notification Categories
+- **Transactional**: Payment confirmations, withdrawal updates
+- **Operational**: System maintenance, policy updates
+- **Marketing**: Feature announcements, tips and insights
+- **Support**: Help requests, ticket updates
+
+### 4. Email Delivery Infrastructure
+- **Queue Management**: Background job processing for email delivery
+- **Template Caching**: Optimized rendering for high-volume sending
+- **Delivery Tracking**: Email open and click tracking
+- **Failure Handling**: Retry mechanisms and error logging
+
+## Biometric Authentication
+
+### 1. Security Enhancement
+- **Purpose**: Enhanced security layer for sensitive operations
+- **Implementation**: Fingerprint and facial recognition support
+- **Integration**: Mobile app biometric APIs
+
+### 2. Authentication Endpoints
+- **Endpoints**:
+  - `POST /api/auth/biometric/authenticate` - Authenticate using biometrics
+  - `POST /api/auth/biometric/enroll` - Enroll biometric data
+  - `GET /api/auth/biometric/status` - Check biometric enrollment status
+  - `DELETE /api/auth/biometric/disable` - Disable biometric authentication
+
+### 3. Biometric Features
+- **Enrollment Process**: Secure biometric data capture and storage
+- **Authentication Flow**: Seamless login without passwords
+- **Fallback Options**: Traditional login methods remain available
+- **Security Standards**: Industry-standard encryption and storage
+
+### 4. Use Cases
+- **User Login**: Quick access to user accounts
+- **Payment Authorization**: Secure transaction approval
+- **Sensitive Operations**: Account modifications, withdrawals
+- **Admin Functions**: Administrative action verification
+
+## Automated Jobs & Scheduling
+
+### 1. Agreement Management Automation
+
+#### Expired Agreement Monitoring
+- **Job**: `CheckExpiredAgreementJob`
+- **Schedule**: Daily execution at midnight
+- **Function**: Automatic status update for expired rental agreements
+- **Implementation**: Laravel task scheduler via `routes/console.php`
+
+#### Job Features
+- **Bulk Processing**: Efficient handling of multiple agreements
+- **Safe Filtering**: Only processes truly expired agreements
+- **Status Updates**: Automatic change from `active` to `expired`
+- **Audit Trail**: Comprehensive logging of all changes
+
+### 2. Scheduler Configuration
+- **Location**: `routes/console.php` (Laravel 11 compatible)
+- **Execution**: `Schedule::job(CheckExpiredAgreementJob::class)->daily()`
+- **Monitoring**: Built-in Laravel scheduler monitoring
+- **Error Handling**: Failed job retry mechanisms
+
+### 3. Additional Scheduled Tasks
+- **Payment Reminders**: Daily payment due notifications
+- **Property Verification**: Automated reminder for pending verifications
+- **Analytics Processing**: Daily/weekly analytics calculations
+- **Data Cleanup**: Periodic cleanup of temporary data
+
+### 4. Job Management Features
+- **Queue Processing**: Background job execution
+- **Error Logging**: Comprehensive error tracking
+- **Performance Monitoring**: Job execution time tracking
+- **Manual Triggers**: Admin ability to manually trigger jobs
+
 ## Additional Features
 
 ### 1. Rent Savings
@@ -378,10 +584,20 @@ The platform supports four distinct user roles:
 - Save properties for later viewing
 - Quick access to preferred properties
 
-### 3. Wallet System
-- Digital wallet for payments
-- Transaction history
-- Withdrawal management
+### 3. Enhanced Wallet System
+- **Digital Wallet Features**:
+  - Real-time balance tracking
+  - Multi-transaction support
+  - Withdrawal management with admin approval
+  - Transaction history and analytics
+  - Security features and fraud detection
+
+- **Withdrawal Management**:
+  - User-initiated withdrawal requests
+  - Admin approval workflow via Filament interface
+  - Automated email notifications for status changes
+  - Secure fund transfer processing
+  - Comprehensive audit trail
 
 ### 4. Analytics & Insights
 - **Endpoints**:
@@ -454,11 +670,41 @@ The platform supports four distinct user roles:
 - **Improved Payment Flow**: Better support for both online and offline payments
 - **Comprehensive Analytics**: Enhanced insights and reporting capabilities
 
+#### 6. Advanced Security Features
+- **Biometric Authentication**: Optional biometric login for enhanced security
+- **Withdrawal Security**: Multi-layer approval process for fund withdrawals
+- **Audit Trail**: Comprehensive logging of all sensitive operations
+- **Two-Factor Authentication**: Enhanced security for critical operations
+
+#### 7. Automated System Management
+- **Job Scheduling**: Automated management of expired agreements
+- **Email Automation**: Professional email templates for all system notifications
+- **Background Processing**: Queue-based job processing for heavy operations
+- **Performance Optimization**: Enhanced database queries and caching
+
+#### 8. Property Management Enhancements
+- **Facilities Management**: Improved handling of property facilities with form data support
+- **Media Upload**: Enhanced property image and video management
+- **Verification Workflow**: Streamlined agent property verification process
+- **Status Management**: Improved property status tracking and updates
+
+#### 9. Financial Management Improvements
+- **Wallet Integration**: Comprehensive digital wallet system
+- **Withdrawal Processing**: Automated withdrawal workflow with admin controls
+- **Payment Validation**: Enhanced payment amount validation with tolerance ranges
+- **Commission Calculation**: Automated commission and discount calculations
+
 ### Configuration Settings
 - **Engagement Fee**: Configurable via `SystemSetting::get('engagement_fee', 5000)`
 - **Bank Details**: Stored in system settings with fallback defaults
 - **Commission Rate**: 10% of rent amount (configurable)
 - **Maximum Active Rentals**: 5 per user (hardcoded, can be made configurable)
+- **Withdrawal Limits**: Configurable daily/monthly withdrawal limits
+- **Email Templates**: Customizable email templates via Blade views
+- **Job Scheduling**: Laravel scheduler configuration in `routes/console.php`
+- **Biometric Settings**: Configurable biometric authentication requirements
+- **Payment Tolerance**: 2% tolerance for payment amount variations
+- **File Upload Limits**: Configurable limits for property media uploads
 
 ## Security & Verification
 
@@ -506,4 +752,33 @@ All protected endpoints require:
 ### Agreement Status
 - `pending` → `active` → `expired` / `terminated`
 
-This documentation provides a comprehensive overview of the ShelterBaze platform's user flows, from initial onboarding through the complete rental process. Each step includes relevant API endpoints and key features to ensure smooth user experience across all roles.
+### Withdrawal Status
+- `pending` → `processing` → `paid` / `rejected`
+
+### Biometric Status
+- `not_enrolled` → `enrolled` → `active` / `disabled`
+
+## Technical Architecture
+
+### Database Design
+- **User Management**: Multi-role user system with role-based permissions
+- **Property Management**: Comprehensive property listing with media support
+- **Financial System**: Integrated wallet, payment, and withdrawal management
+- **Communication**: Real-time chat and notification system
+- **Audit System**: Comprehensive logging and audit trail
+
+### API Design Principles
+- **RESTful Architecture**: Standard HTTP methods and status codes
+- **Authentication**: Sanctum token-based authentication
+- **Authorization**: Role-based access control (RBAC)
+- **Validation**: Comprehensive request validation with form requests
+- **Error Handling**: Standardized error responses and logging
+
+### Performance Optimization
+- **Database Optimization**: Proper indexing and query optimization
+- **Caching**: Redis-based caching for frequently accessed data
+- **Queue System**: Background job processing for heavy operations
+- **File Storage**: Cloudinary integration for media management
+- **API Rate Limiting**: Configurable rate limiting for API endpoints
+
+This documentation provides a comprehensive overview of the ShelterBaze platform's enhanced features, including the new withdrawal system, biometric authentication, automated job scheduling, and professional email notification system. Each section includes relevant technical details and implementation guidelines to ensure smooth development and maintenance.

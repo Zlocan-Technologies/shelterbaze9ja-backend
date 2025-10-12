@@ -16,6 +16,7 @@ use App\Services\NotificationService;
 use App\Util\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -247,7 +248,9 @@ class PropertyRepository
         }
 
         $oldData = $property->toArray();
-        $property->update($request->only([
+        
+        // Get the data to update
+        $updateData = $request->only([
             'title',
             'description',
             'property_type',
@@ -259,10 +262,17 @@ class PropertyRepository
             'latitude',
             'facilities',
             'status'
-        ]));
+        ]);
+        
+    
+        $property->update($updateData);
+        
+        // Verify the update was successful
+        $updatedProperty = $property->fresh();
+        
 
         // Log property update
-        AuditLog::log('property_updated', $property, $oldData, $property->fresh()->toArray());
+        AuditLog::log('property_updated', $property, $oldData, $updatedProperty->toArray());
 
         return ApiResponse::respond(
             data: $property->fresh()->load('media'),

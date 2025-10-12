@@ -95,11 +95,12 @@ class RentPaymentRepository
 
         // Apply discount for long-term rentals (12+ months get 5% discount)
         $discount = 0;
-        if ($request->rental_period_months >= 12) {
-            $discount = $rentAmount * 0.05; // 5% discount on rent amount
-            $rentAmount -= $discount;
-            $totalAmount = $rentAmount + $commission;
-        }
+        //no discount applied
+        // if ($request->rental_period_months >= 12) {
+        //     $discount = $rentAmount * 0.05; // 5% discount on rent amount
+        //     $rentAmount -= $discount;
+        //     $totalAmount = $rentAmount + $commission;
+        // }
 
         // Create rental agreement
         $agreement = RentalAgreement::updateOrCreate([

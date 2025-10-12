@@ -52,6 +52,10 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'txn_pin' => 'hashed'
     ];
 
+    protected $appends = [
+        'has_transaction_pin'
+    ];
+
     // Constants for roles
     const ROLE_USER = 'user';
     const ROLE_LANDLORD = 'landlord';
@@ -193,6 +197,11 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         return $this->first_name . ' ' . $this->last_name;
     }
 
+    public function getTransactionPinAttribute()
+    {
+        return $this->txn_pin;
+    }
+
     public function getNameAttribute()
     {
         return $this->first_name . ' ' . $this->last_name;
@@ -257,6 +266,11 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     public function getUnreadNotificationsCountAttribute()
     {
         return $this->notifications()->where('is_read', false)->count();
+    }
+
+    public function getHasTransactionPinAttribute(): bool
+    {
+        return !is_null($this->txn_pin);
     }
 
     //Filament permissions

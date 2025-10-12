@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\RentPayment;
 use App\Services\NotificationService;
 use App\Services\Wallet\WalletService;
+use App\Traits\SendMail;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -22,6 +23,8 @@ use Filament\Tables\Table;
 
 class RentPaymentsTable
 {
+    use SendMail;
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -52,8 +55,8 @@ class RentPaymentsTable
                     ->date()
                     ->sortable(),
                 TextColumn::make('status'),
-                TextColumn::make('verified_by') 
-                ->getStateUsing(fn($record) => $record->verifiedBy ? $record->verifiedBy->name : 'N/A')
+                TextColumn::make('verified_by')
+                    ->getStateUsing(fn($record) => $record->verifiedBy ? $record->verifiedBy->name : 'N/A')
                     ->sortable(),
                 TextColumn::make('verified_at')
                     ->dateTime()
@@ -93,9 +96,15 @@ class RentPaymentsTable
                         ]);
 
                         //wallet will be funded when admin approves the payment
-                        if($data['status'] === RentPayment::STATUS_VERIFIED && $data['payment_type'] === RentPayment::TYPE_ONLINE){
-                            $walletService = new WalletService();
-                            $walletService->fundWallet($record->rentalAgreement->landlord, $record->amount);
+                        if ($data['status'] === RentPayment::STATUS_VERIFIED) {
+                            $record->rentalAgreement->update([
+                                'status' => 'active'
+                            ]);
+
+                            if ($data['payment_type'] === RentPayment::TYPE_ONLINE) {
+                                $walletService = new WalletService();
+                                $walletService->fundWallet($record->rentalAgreement->landlord, $record->amount);
+                            }
                         }
 
                         Notification::make()
@@ -105,6 +114,22 @@ class RentPaymentsTable
 
                         AuditLog::log('rent_payment_updated to ' . $data['status'] . ' by ' . auth()->user()->name, $record);
 
+
+                        //send mail to landlord and agent
+                        // Send welcome email
+                        self::sendMail(
+                            user: $record->rentalAgreement->landlord,
+                            subject: $record->user->name. ' has a payment ' . $data['status'],
+                            view: 'email.rent_payment_status'
+                        );
+
+                        if($record->rentalAgreement->agent){
+                            self::sendMail(
+                                user: $record->rentalAgreement->agent,
+                                subject: $record->user->name. ' has a payment ' . $data['status'],
+                                view: 'email.rent_payment_status'
+                            );
+                        }
 
                         $notificationService->createInAppNotification(
                             $record->user_id,
