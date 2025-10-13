@@ -2,11 +2,16 @@
 
 namespace App\Repositories;
 
+use App\Enums\WithdrawalStatus;
+use App\Http\Requests\Profile\ChangePasswordRequest;
 use App\Http\Requests\Profile\CompleteProfileRequest;
 use App\Http\Requests\Profile\CreateTransactionPinRequest;
+use App\Http\Requests\Profile\CreateWithdrawalRequest;
 use App\Http\Requests\Profile\ResetTransactionPinRequest;
+use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Requests\Profile\UploadDocumentRequest;
 use App\Models\AuditLog;
+use App\Models\Withdrawal;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
 use App\Services\Otp\OtpService;
@@ -14,6 +19,7 @@ use App\Traits\SendMail;
 use App\Util\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileRepository
 {
@@ -93,6 +99,51 @@ class ProfileRepository
             data: $user->fresh()->load('profile'),
             status: true,
             message: 'Profile completed successfully. Your account is now under review.',
+        );
+    }
+
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = $request->user();
+        $oldData = $user->toArray();
+
+        $user->update($request->only(['first_name', 'last_name', 'phone_number']));
+
+        // Upload Profile Picture
+        if ($request->hasFile('profile_picture')) {
+            $profilePicUpload = $this->fileUploadService->uploadToCloudinary(
+                $request->file('profile_picture'),
+                'profiles/profile_pictures'
+            );
+
+            if (!$profilePicUpload['success']) {
+                return ApiResponse::respond(
+                    status: false,
+                    message: 'Failed to upload profile picture',
+                    error: $profilePicUpload['error'],
+                    statusCode: 500,
+                );
+            }
+
+            // Update profile picture URL
+            $user->profile()->update([
+                'profile_picture' => $profilePicUpload['url']
+            ]);
+        }
+
+
+        // If phone number changed, reset verification
+        if ($request->has('phone_number') && $request->phone_number !== $user->getOriginal('phone_number')) {
+            $user->update(['phone_verified_at' => null]);
+        }
+
+        // Log the update
+        AuditLog::log('profile_updated', $user, $oldData, $user->fresh()->toArray());
+
+        return ApiResponse::respond(
+            status: true,
+            message: 'Profile updated successfully',
+            data: ['user' => $user->fresh()->load('profile')]
         );
     }
 
@@ -242,6 +293,102 @@ class ProfileRepository
             data: [
                 'user' => $user->fresh()->load(['profile', 'wallet'])
             ]
+        );
+    }
+
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        $user = $request->user();
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Current password is incorrect',
+                statusCode: 400
+            );
+        }
+
+        // Update password
+        $user->update(['password' => $request->new_password]);
+
+        // Log password change
+        AuditLog::log('password_changed', $user);
+
+        // Create notification
+        $this->notificationService->createInAppNotification(
+            $user->id,
+            'Password Changed',
+            'Your password has been successfully changed.',
+            'success'
+        );
+
+        return ApiResponse::respond(
+            message: 'Password changed successfully'
+        );
+    }
+
+    public function createWithdrawalRequest(CreateWithdrawalRequest $request)
+    {
+        $user = $request->user();
+        
+        if (!$user->has_transaction_pin) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Please set your Transaction PIN before making a withdrawal',
+                statusCode: 400
+            );
+        }
+
+        if (!Hash::check($request->trx_pin, $user->transaction_pin)) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Invalid Transaction PIN',
+                statusCode: 400
+            );
+        }
+
+        // Validate user has sufficient balance
+        if ($user->wallet->balance < $request->amount) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Insufficient balance',
+                statusCode: 400
+            );
+        }
+
+        // Create withdrawal request
+        $withdrawal = Withdrawal::create([
+            'user_id' => $user->id,
+            'amount' => $request->amount,
+            'status' => WithdrawalStatus::PENDING,
+            'account_name' => $request->account_name,
+            'account_number' => $request->account_number,
+            'bank_name' => $request->bank_name,
+        ]);
+
+        // Log withdrawal request
+        AuditLog::log('withdrawal_requested', $user, null, [
+            'withdrawal_id' => $withdrawal->id,
+            'amount' => $request->amount
+        ]);
+
+        return ApiResponse::respond(
+            status: true,
+            message: 'Withdrawal request created successfully',
+            data: $withdrawal
+        );
+    }
+
+    public function getWithdrawalHistory(Request $request)
+    {
+        $user = $request->user();
+
+        $withdrawals = $user->withdrawals()->latest()->paginate(20);
+
+        return ApiResponse::respond(
+            status: true,
+            data: $withdrawals
         );
     }
 }

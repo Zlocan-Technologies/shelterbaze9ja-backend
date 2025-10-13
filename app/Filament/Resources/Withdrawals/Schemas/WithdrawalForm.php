@@ -29,11 +29,11 @@ class WithdrawalForm
                     ->columnSpanFull(),
                 Select::make('status')
                     ->options([
-            'PENDING' => 'P e n d i n g',
-            'PROCESSING' => 'P r o c e s s i n g',
-            'PAID' => 'P a i d',
-            'REJECTED' => 'R e j e c t e d',
-        ])
+                        'PENDING' => 'P e n d i n g',
+                        'PROCESSING' => 'P r o c e s s i n g',
+                        'PAID' => 'P a i d',
+                        'REJECTED' => 'R e j e c t e d',
+                    ])
                     ->default('PENDING')
                     ->required(),
             ]);

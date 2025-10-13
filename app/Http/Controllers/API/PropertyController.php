@@ -29,17 +29,17 @@ class PropertyController extends Controller
 
     public function store(CreatePropertyRequest $request)
     {
-        return (new ResponseHandler())->execute(fn() => $this->propertyRepository->createProperty($request));
+        return (new ResponseHandler())->executeTransaction(fn() => $this->propertyRepository->createProperty($request));
     }
 
     public function update(UpdatePropertyRequest $request, $id)
     {
-        return (new ResponseHandler())->execute(fn() => $this->propertyRepository->updateProperty($request, $id));
+        return (new ResponseHandler())->executeTransaction(fn() => $this->propertyRepository->updateProperty($request, $id));
     }
 
     public function destroy(Request $request, $id)
     {
-        return (new ResponseHandler())->execute(fn() => $this->propertyRepository->deleteProperty($request, $id));
+        return (new ResponseHandler())->executeTransaction(fn() => $this->propertyRepository->deleteProperty($request, $id));
     }
 
     public function myListings(Request $request)
@@ -49,12 +49,12 @@ class PropertyController extends Controller
 
     public function uploadMedia(UploadMediaRequest $request, $id)
     {
-        return (new ResponseHandler())->execute(fn() => $this->propertyRepository->uploadMedia($request, $id));
+        return (new ResponseHandler())->executeTransaction(fn() => $this->propertyRepository->uploadMedia($request, $id));
     }
 
     public function removeMedia($mediaId, Request $request)
     {
-        return (new ResponseHandler())->execute(fn() => $this->propertyRepository->removeMedia($request, $mediaId));
+        return (new ResponseHandler())->executeTransaction(fn() => $this->propertyRepository->removeMedia($request, $mediaId));
     }
 
     public function toggleStatus($id, Request $request)

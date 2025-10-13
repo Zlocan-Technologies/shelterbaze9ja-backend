@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Profile\ChangePasswordRequest;
 use App\Http\Requests\Profile\CompleteProfileRequest;
 use App\Http\Requests\Profile\CreateTransactionPinRequest;
+use App\Http\Requests\Profile\CreateWithdrawalRequest;
 use App\Http\Requests\Profile\ResetTransactionPinRequest;
+use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Requests\Profile\UploadDocumentRequest;
 use App\Models\User;
 use App\Models\UserProfile;
@@ -41,48 +44,9 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function update(Request $request)
+    public function update(UpdateProfileRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'sometimes|string|max:255',
-            'last_name' => 'sometimes|string|max:255',
-            'phone_number' => 'sometimes|string|unique:users,phone_number,' . $request->user()->id,
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $user = $request->user();
-            $oldData = $user->toArray();
-
-            $user->update($request->only(['first_name', 'last_name', 'phone_number']));
-
-            // If phone number changed, reset verification
-            if ($request->has('phone_number') && $request->phone_number !== $user->getOriginal('phone_number')) {
-                $user->update(['phone_verified_at' => null]);
-            }
-
-            // Log the update
-            AuditLog::log('profile_updated', $user, $oldData, $user->fresh()->toArray());
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Profile updated successfully',
-                'data' => ['user' => $user->fresh()->load('profile')]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Profile update failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->updateProfile($request));
     }
 
     public function completeProfile(CompleteProfileRequest $request)
@@ -146,57 +110,9 @@ class ProfileController extends Controller
         }
     }
 
-    public function changePassword(Request $request)
+    public function changePassword(ChangePasswordRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $user = $request->user();
-
-            // Verify current password
-            if (!Hash::check($request->current_password, $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Current password is incorrect'
-                ], 400);
-            }
-
-            // Update password
-            $user->update(['password' => $request->new_password]);
-
-            // Log password change
-            AuditLog::log('password_changed', $user);
-
-            // Create notification
-            $this->notificationService->createInAppNotification(
-                $user->id,
-                'Password Changed',
-                'Your password has been successfully changed.',
-                'success'
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Password changed successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Password change failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+      return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->changePassword($request));
     }
 
     public function createTransactionPin(CreateTransactionPinRequest $request)
@@ -212,5 +128,15 @@ class ProfileController extends Controller
     public function resetTransactionPin(ResetTransactionPinRequest $request)
     {
         return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->resetTransactionPin($request));
+    }
+
+    public function requestWithdrawal(CreateWithdrawalRequest $request)
+    {
+        return (new ResponseHandler())->executeTransaction(fn() => $this->profileRepository->createWithdrawalRequest($request));
+    }
+
+    public function getWithdrawalHistory(Request $request)
+    {
+        return (new ResponseHandler())->execute(fn() => $this->profileRepository->getWithdrawalHistory($request));
     }
 }

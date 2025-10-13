@@ -55,14 +55,19 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('profile')->group(functi
     Route::post('/complete-profile', [ProfileController::class, 'completeProfile']);
     Route::post('/upload-document', [ProfileController::class, 'uploadDocument']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/update', [ProfileController::class, 'update']);
     Route::post('/update-fcm-token', [AuthController::class, 'updateFcmToken']);
     Route::post('/create-transaction-pin', [ProfileController::class, 'createTransactionPin']);
     Route::post('/reset-transaction-pin', [ProfileController::class, 'resetTransactionPin']);
     Route::post('/forgot-transaction-pin', [ProfileController::class, 'forgotTransactionPin']);
+    Route::post('/change-password', [ProfileController::class, 'changePassword']);
+    Route::post('/create-withdrawal', [ProfileController::class, 'requestWithdrawal']);
+    Route::get('/withdrawal-history', [ProfileController::class, 'getWithdrawalHistory']);
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('listing')->group(function () {
     Route::resource('properties', PropertyController::class);
+    Route::post('/properties/{id}', [PropertyController::class, 'update']);
     Route::get('/my-listings', [PropertyController::class, 'myListings']);
     Route::post('/upload-media/{id}', [PropertyController::class, 'uploadMedia']);
     Route::delete('/remove-media/{id}', [PropertyController::class, 'removeMedia']);

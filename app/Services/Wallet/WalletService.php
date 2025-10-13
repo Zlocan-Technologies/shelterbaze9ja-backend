@@ -37,22 +37,22 @@ class WalletService
          AuditLog::log("{$user->id} {$user->name} wallet debited with {$amount}", $wallet);
     }
 
-    public function createWithdrawal(Request $request)
-    {
-        //check wallet balance with amount
-        try {
-            $user = $request->user();
-            $amount = $request->amount;
-            $this->validateWalletBalance($user, $amount);
+    // public function createWithdrawal(Request $request)
+    // {
+    //     //check wallet balance with amount
+    //     try {
+    //         $user = $request->user();
+    //         $amount = $request->amount;
+    //         $this->validateWalletBalance($user, $amount);
 
-            $user->withdrawals()->create($request->validated());
-            //debit user wallet
-            $this->debitWallet($user, $amount);
-            return ApiResponse::respond(message: 'Your withdrawal request was successful! Your funds will be credited to your account within 48 working hours');
-        } catch (\Throwable $th) {
-            throw $th;
-        }
-    }
+    //         $user->withdrawals()->create($request->validated());
+    //         //debit user wallet
+    //         $this->debitWallet($user, $amount);
+    //         return ApiResponse::respond(message: 'Your withdrawal request was successful! Your funds will be credited to your account within 48 working hours');
+    //     } catch (\Throwable $th) {
+    //         throw $th;
+    //     }
+    // }
 
     private function validateWalletBalance(User $user, float $amount)
     {

@@ -11,7 +11,7 @@ class UserProfile extends Model
 
     protected $fillable = [
         'user_id', 'nin_number', 'nin_selfie_url', 'address', 
-        'state', 'lga', 'agent_id', 'id_card_url', 'verification_documents'
+        'state', 'lga', 'agent_id', 'id_card_url', 'verification_documents', 'profile_picture'
     ];
 
     protected $casts = [
