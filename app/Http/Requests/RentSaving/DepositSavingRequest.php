@@ -15,14 +15,14 @@ class DepositSavingRequest extends BaseFormRequest
     {
         return [
             'savings_id' => 'required|exists:rent_savings,id',
-            'amount' => 'required|numeric|min:100|max:10000000' // Max 10M per transaction
+            'amount' => 'required|numeric|max:10000000' // Max 10M per transaction
         ];
     }
 
     public function messages(): array
     {
         return [
-            'amount.min' => 'Minimum deposit amount is ₦100',
+            // 'amount.min' => 'Minimum deposit amount is ₦100',
             'amount.max' => 'Maximum deposit amount is ₦10,000,000 per transaction'
         ];
     }
