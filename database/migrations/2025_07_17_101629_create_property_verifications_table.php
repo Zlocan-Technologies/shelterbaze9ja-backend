@@ -14,8 +14,8 @@ return new class extends Migration
             $table->foreignId('agent_id')->constrained('users')->onDelete('cascade');
             $table->json('verification_images'); // URLs of verification photos
             $table->text('verification_notes');
-            $table->decimal('longitude', 10, 8);
-            $table->decimal('latitude', 10, 8);
+            $table->decimal('longitude', 15, 8); // Changed from 10,8 to 15,8 to support -180 to 180
+            $table->decimal('latitude', 15, 8);  // Changed from 10,8 to 15,8 to support -90 to 90
             $table->timestamp('verification_date');
             $table->enum('status', ['verified', 'rejected']);
             $table->text('rejection_reason')->nullable();

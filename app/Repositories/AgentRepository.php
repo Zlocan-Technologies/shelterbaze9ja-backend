@@ -132,6 +132,13 @@ class AgentRepository
             'assigned_by' => auth('sanctum')->user()->id,
         ]);
 
+        //assign the agent to all the landlord's properties if not already assigned
+        if($assign_type == AgentAssignment::TYPE_LANDLORD_SUPPORT) {
+            Property::where('landlord_id', $landlord_id)->update(
+                ['agent_id' => $agent_id]
+            );
+        }
+
         return $assignment;
     }
 
@@ -143,6 +150,13 @@ class AgentRepository
 
         if (!$assignment) {
             return false; // No active assignment found
+        }
+
+        //unassign all properties assigned to the agent
+        if($assign_type == AgentAssignment::TYPE_LANDLORD_SUPPORT) {
+            Property::where('landlord_id', $assignment->landlord_id)->update(
+                ['agent_id' => null]
+            );
         }
 
         $assignment->delete();
