@@ -87,7 +87,7 @@ class PropertyRepository
                 $property->is_favorited = $property->isFavoritedBy($userId);
                 $property->has_paid_engagement_fee = $property->hasUserPaidEngagementFee($userId);
                 $property->agent_review = $property->verifications->pluck('verification_notes')->flatten()->first() ?? null;
-                
+
                 unset($property->verifications);
                 return $property;
             });
@@ -202,7 +202,7 @@ class PropertyRepository
         $pendingPayments = RentalAgreement::where('landlord_id', $user->id)
             ->whereHas('rentPayments', function ($q) {
                 $q->where('status', RentPayment::STATUS_PENDING)
-                ->where('payment_type', RentPayment::TYPE_ONLINE);
+                    ->where('payment_type', RentPayment::TYPE_ONLINE);
             })->get();
 
         return ApiResponse::respond(
@@ -270,7 +270,7 @@ class PropertyRepository
         }
 
         $oldData = $property->toArray();
-        
+
         // Get the data to update
         $updateData = $request->only([
             'title',
@@ -285,13 +285,13 @@ class PropertyRepository
             'facilities',
             'status'
         ]);
-        
-    
+
+
         $property->update($updateData);
-        
+
         // Verify the update was successful
         $updatedProperty = $property->fresh();
-        
+
 
         // Log property update
         AuditLog::log('property_updated', $property, $oldData, $updatedProperty->toArray());
@@ -326,7 +326,7 @@ class PropertyRepository
 
         return ApiResponse::respond(
             message: 'Success!',
-            data:  [
+            data: [
                 'total_earnings' => $payments->sum('amount'),
                 'properties' => $properties
             ],
@@ -482,44 +482,52 @@ class PropertyRepository
             );
         }
 
-        // Check media limits
-        $mediaType = $request->media_type;
-        $currentCount = $property->media()->where('media_type', $mediaType)->count();
-        $maxCount = $mediaType === 'image' ? 10 : 3;
+        $mediaList = [];
 
-        if ($currentCount >= $maxCount) {
-            return ApiResponse::respond(
-                message: 'Maximum {$maxCount} {$mediaType}s allowed per property',
-                status: false,
-                statusCode: 400
-            );
+        foreach ($request->media as $media) {
+
+            // Check media limits
+            $mediaType = $media['media_type'];
+            $currentCount = $property->media()->where('media_type', $mediaType)->count();
+            $maxCount = $mediaType === 'image' ? 10 : 3;
+
+            if ($currentCount >= $maxCount) {
+                return ApiResponse::respond(
+                    message: 'Maximum {$maxCount} {$mediaType}s allowed per property',
+                    status: false,
+                    statusCode: 400
+                );
+            }
+
+            // Upload media
+            $folder = $mediaType === 'image' ? 'properties/images' : 'properties/videos';
+            $upload = $this->fileUploadService->uploadToCloudinary($media['file'], $folder);
+
+            if (!$upload['success']) {
+                return ApiResponse::respond(
+                    message: 'Failed to upload media',
+                    status: false,
+                    statusCode: 500
+                );
+            }
+
+            // Create media record
+            $media = PropertyMedia::create([
+                'property_id' => $property->id,
+                'media_type' => $mediaType,
+                'media_url' => $upload['url'],
+                'public_id' => $upload['public_id'] ?? null,
+                'is_primary' => $media['is_primary'] ?? false
+            ]);
+
+            $mediaList[] = $media;
+
+            // Set as primary if requested
+            if ($media['is_primary'] == true) {
+                $media->makePrimary();
+            }
         }
 
-        // Upload media
-        $folder = $mediaType === 'image' ? 'properties/images' : 'properties/videos';
-        $upload = $this->fileUploadService->uploadToCloudinary($request->file('media'), $folder);
-
-        if (!$upload['success']) {
-            return ApiResponse::respond(
-                message: 'Failed to upload media',
-                status: false,
-                statusCode: 500
-            );
-        }
-
-        // Create media record
-        $media = PropertyMedia::create([
-            'property_id' => $property->id,
-            'media_type' => $mediaType,
-            'media_url' => $upload['url'],
-            'public_id' => $upload['public_id'] ?? null,
-            'is_primary' => $request->get('is_primary', false)
-        ]);
-
-        // Set as primary if requested
-        if ($request->get('is_primary', false)) {
-            $media->makePrimary();
-        }
 
         // Log media upload
         AuditLog::log('property_media_uploaded', $property, null, [
@@ -529,7 +537,7 @@ class PropertyRepository
 
         return ApiResponse::respond(
             message: 'Media uploaded successfully',
-            data: ['media' => $media]
+            data: $mediaList
         );
     }
 
