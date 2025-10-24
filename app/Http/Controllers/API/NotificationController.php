@@ -11,6 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Services\FcmService;
+use App\Jobs\SendPushNotification;
 
 class NotificationController extends Controller
 {
@@ -524,6 +526,219 @@ class NotificationController extends Controller
                 'success' => false,
                 'message' => 'Failed to send role-based notifications'
             ], 500);
+        }
+    }
+
+    /**
+     * Send push notification to multiple users
+     */
+    public function sendPushNotification(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer|exists:users,id',
+            'title' => 'required|string|max:255',
+            'body' => 'required|string|max:1000',
+            'data' => 'nullable|array',
+            'create_in_app' => 'nullable|boolean',
+            'queued' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Validation failed',
+                data: ['errors' => $validator->errors()],
+                statusCode: 422
+            );
+        }
+
+        $userIds = $request->user_ids;
+        $title = $request->title;
+        $body = $request->body;
+        $data = $request->data ?? [];
+        $createInApp = $request->create_in_app ?? false;
+        $queued = $request->queued ?? true;
+
+        try {
+            // Create in-app notifications if requested
+            if ($createInApp) {
+                $notificationType = $data['type'] ?? Notification::TYPE_INFO;
+
+                DB::beginTransaction();
+                try {
+                    foreach ($userIds as $userId) {
+                        Notification::createForUser(
+                            $userId,
+                            $title,
+                            $body,
+                            $notificationType,
+                            $data
+                        );
+                    }
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return ApiResponse::respond(
+                        status: false,
+                        message: 'Failed to create in-app notifications',
+                        statusCode: 500
+                    );
+                }
+            }
+
+            // Send push notifications
+            if ($queued) {
+                // Queue the push notification job
+                SendPushNotification::dispatch($userIds, $title, $body, $data);
+
+                return ApiResponse::respond(
+                    message: 'Push notifications queued successfully',
+                    data: [
+                        'queued' => true,
+                        'user_count' => count($userIds),
+                        'in_app_created' => $createInApp
+                    ]
+                );
+            } else {
+                // Send immediately
+                $fcmService = app(FcmService::class);
+                $result = $fcmService->sendToUsers($userIds, $title, $body, $data);
+
+                return ApiResponse::respond(
+                    message: 'Push notifications sent successfully',
+                    data: [
+                        'queued' => false,
+                        'result' => $result,
+                        'in_app_created' => $createInApp
+                    ]
+                );
+            }
+
+        } catch (\Exception $e) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Failed to send push notifications: ' . $e->getMessage(),
+                statusCode: 500
+            );
+        }
+    }
+
+    /**
+     * Send push notification to users by role
+     */
+    public function sendPushNotificationByRole(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
+            'role' => 'required|in:' . implode(',', [
+                User::ROLE_USER,
+                User::ROLE_LANDLORD,
+                User::ROLE_AGENT,
+                User::ROLE_ADMIN
+            ]),
+            'title' => 'required|string|max:255',
+            'body' => 'required|string|max:1000',
+            'data' => 'nullable|array',
+            'create_in_app' => 'nullable|boolean',
+            'queued' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Validation failed',
+                data: ['errors' => $validator->errors()],
+                statusCode: 422
+            );
+        }
+
+        $role = $request->role;
+        $title = $request->title;
+        $body = $request->body;
+        $data = $request->data ?? [];
+        $createInApp = $request->create_in_app ?? false;
+        $queued = $request->queued ?? true;
+
+        try {
+            // Get all users with the specified role
+            $users = User::byRole($role)->active()->get();
+
+            if ($users->isEmpty()) {
+                return ApiResponse::respond(
+                    status: false,
+                    message: 'No active users found with the specified role',
+                    statusCode: 404
+                );
+            }
+
+            $userIds = $users->pluck('id')->toArray();
+
+            // Create in-app notifications if requested
+            if ($createInApp) {
+                $notificationType = $data['type'] ?? Notification::TYPE_INFO;
+
+                DB::beginTransaction();
+                try {
+                    foreach ($userIds as $userId) {
+                        Notification::createForUser(
+                            $userId,
+                            $title,
+                            $body,
+                            $notificationType,
+                            $data
+                        );
+                    }
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return ApiResponse::respond(
+                        status: false,
+                        message: 'Failed to create in-app notifications',
+                        statusCode: 500
+                    );
+                }
+            }
+
+            // Send push notifications
+            if ($queued) {
+                // Queue the push notification job
+                SendPushNotification::dispatch($userIds, $title, $body, $data);
+
+                return ApiResponse::respond(
+                    message: "Push notifications queued for all {$role}s successfully",
+                    data: [
+                        'queued' => true,
+                        'user_count' => count($userIds),
+                        'role' => $role,
+                        'in_app_created' => $createInApp
+                    ]
+                );
+            } else {
+                // Send immediately
+                $fcmService = app(FcmService::class);
+                $result = $fcmService->sendToUsers($userIds, $title, $body, $data);
+
+                return ApiResponse::respond(
+                    message: "Push notifications sent to all {$role}s successfully",
+                    data: [
+                        'queued' => false,
+                        'result' => $result,
+                        'role' => $role,
+                        'in_app_created' => $createInApp
+                    ]
+                );
+            }
+
+        } catch (\Exception $e) {
+            return ApiResponse::respond(
+                status: false,
+                message: 'Failed to send push notifications: ' . $e->getMessage(),
+                statusCode: 500
+            );
         }
     }
 }

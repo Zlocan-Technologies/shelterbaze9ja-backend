@@ -39,7 +39,29 @@ class PropertyRepository
                 'status',
                 'verification_status',
                 AllowedFilter::exact('landlord_id'),
+                AllowedFilter::exact('property_code'),
                 AllowedFilter::scope('price_range', 'byPriceRange'),
+                AllowedFilter::scope('max_price', 'maxPrice'),
+                AllowedFilter::scope('min_price', 'minPrice'),
+                AllowedFilter::callback('search', function ($query, $value) {
+                    // Search by property code, title, or location
+                    $query->where(function ($q) use ($value) {
+                        $q->where('property_code', 'LIKE', "%{$value}%")
+                          ->orWhere('title', 'LIKE', "%{$value}%")
+                          ->orWhere('location_address', 'LIKE', "%{$value}%")
+                          ->orWhere('state', 'LIKE', "%{$value}%")
+                          ->orWhere('lga', 'LIKE', "%{$value}%");
+                    });
+                }),
+                AllowedFilter::callback('type', function ($query, $value) {
+                    // Support comma-separated property types
+                    if (is_string($value) && str_contains($value, ',')) {
+                        $types = explode(',', $value);
+                        $query->whereIn('property_type', $types);
+                    } else {
+                        $query->where('property_type', $value);
+                    }
+                }),
                 AllowedFilter::callback('facilities', function ($query, $value) {
                     foreach ((array) $value as $facility) {
                         $query->whereJsonContains('facilities', $facility);

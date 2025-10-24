@@ -114,6 +114,10 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('notifications')->group(
 //     Route::post('/', [NotificationController::class, 'store']);
 //     Route::post('/bulk', [NotificationController::class, 'sendBulk']);
 //     Route::post('/role', [NotificationController::class, 'sendToRole']);
+
+    // Push notification routes (Admin only)
+    Route::post('/push/send', [NotificationController::class, 'sendPushNotification']);
+    Route::post('/push/send-by-role', [NotificationController::class, 'sendPushNotificationByRole']);
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('chat')->group(function () {

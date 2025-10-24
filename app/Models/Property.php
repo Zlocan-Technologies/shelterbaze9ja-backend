@@ -12,8 +12,9 @@ class Property extends Model
 
     protected $fillable = [
         'landlord_id', 'agent_id', 'title', 'description', 'property_type',
-        'rent_amount', 'location_address', 'state', 'lga', 'longitude', 
-        'latitude', 'facilities', 'status', 'verification_status', 'verified_by', 'verified_at'
+        'rent_amount', 'location_address', 'state', 'lga', 'longitude',
+        'latitude', 'facilities', 'status', 'verification_status', 'verified_by', 'verified_at',
+        'property_code'
     ];
 
     protected $casts = [
@@ -49,12 +50,39 @@ class Property extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
+        static::creating(function ($property) {
+            // Generate unique property code
+            if (empty($property->property_code)) {
+                $property->property_code = self::generatePropertyCode();
+            }
+        });
+
         static::saving(function ($property) {
             $commissionRate = config('app.shelterbaze_commission', 10.0) / 100;
             $property->shelterbaze_commission = $property->rent_amount * $commissionRate;
             $property->total_amount = $property->rent_amount + $property->shelterbaze_commission;
         });
+    }
+
+    /**
+     * Generate a unique property code in format SHP001, SHP002, etc.
+     */
+    private static function generatePropertyCode(): string
+    {
+        $lastProperty = self::withTrashed()->orderBy('id', 'desc')->first();
+        $nextId = $lastProperty ? $lastProperty->id + 1 : 1;
+
+        // Keep generating until we find a unique code
+        do {
+            $code = 'SHP' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
+            $exists = self::withTrashed()->where('property_code', $code)->exists();
+            if ($exists) {
+                $nextId++;
+            }
+        } while ($exists);
+
+        return $code;
     }
 
     // Relationships
@@ -148,9 +176,22 @@ class Property extends Model
         return $query;
     }
 
-    public function scopeByPriceRange($query, $min, $max)
+    public function scopeByPriceRange($query, $min, $max = null)
     {
-        return $query->whereBetween('rent_amount', [$min, $max]);
+        if ($max !== null) {
+            return $query->whereBetween('rent_amount', [$min, $max]);
+        }
+        return $query->where('rent_amount', '>=', $min);
+    }
+
+    public function scopeMaxPrice($query, $value)
+    {
+        return $query->where('rent_amount', '<=', $value);
+    }
+
+    public function scopeMinPrice($query, $value)
+    {
+        return $query->where('rent_amount', '>=', $value);
     }
 
     public function scopeWithFacilities($query, $facilities)

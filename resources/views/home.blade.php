@@ -58,37 +58,37 @@
 
     <!-- Obri Features -->
     <!-- <section class="obri-features" id="section2">
-                                                                                                                                <div class="container">
-                                                                                                                                    <h2 class="section-title">Awesome Features</h2>
-                                                                                                                                    <div class="row">
-                                                                                                                                        <div class="col-lg-4 col-md-6">
-                                                                                                                                            <div class="feature-item">
-                                                                                                                                                <div class="obri-icon"><img src="assets/images/icon10@3x.png" alt="Easy to Use" width="70"></div>
-                                                                                                                                                <h2>Easy to Use</h2>
-                                                                                                                                                <p>Cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Donec quam
-                                                                                                                                                    felis, ultricies nec pellentesque.</p>
-                                                                                                                                            </div>
-                                                                                                                                        </div>
-                                                                                                                                        <div class="col-lg-4 col-md-6">
-                                                                                                                                            <div class="feature-item">
-                                                                                                                                                <div class="obri-icon"><img src="assets/images/icon11@3x.png" alt="Light Weight" width="70"></div>
-                                                                                                                                                <h2>Light Weight</h2>
-                                                                                                                                                <p>Cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Donec quam
-                                                                                                                                                    felis, ultricies nec pellentesque.</p>
-                                                                                                                                            </div>
-                                                                                                                                        </div>
-                                                                                                                                        <div class="col-lg-4 col-md-6">
-                                                                                                                                            <div class="feature-item">
-                                                                                                                                                <div class="obri-icon"><img src="assets/images/icon12@3x.png" alt="Advanced System" width="70">
+                                                                                                                                        <div class="container">
+                                                                                                                                            <h2 class="section-title">Awesome Features</h2>
+                                                                                                                                            <div class="row">
+                                                                                                                                                <div class="col-lg-4 col-md-6">
+                                                                                                                                                    <div class="feature-item">
+                                                                                                                                                        <div class="obri-icon"><img src="assets/images/icon10@3x.png" alt="Easy to Use" width="70"></div>
+                                                                                                                                                        <h2>Easy to Use</h2>
+                                                                                                                                                        <p>Cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Donec quam
+                                                                                                                                                            felis, ultricies nec pellentesque.</p>
+                                                                                                                                                    </div>
                                                                                                                                                 </div>
-                                                                                                                                                <h2>Advanced System</h2>
-                                                                                                                                                <p>Cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Donec quam
-                                                                                                                                                    felis, ultricies nec pellentesque.</p>
+                                                                                                                                                <div class="col-lg-4 col-md-6">
+                                                                                                                                                    <div class="feature-item">
+                                                                                                                                                        <div class="obri-icon"><img src="assets/images/icon11@3x.png" alt="Light Weight" width="70"></div>
+                                                                                                                                                        <h2>Light Weight</h2>
+                                                                                                                                                        <p>Cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Donec quam
+                                                                                                                                                            felis, ultricies nec pellentesque.</p>
+                                                                                                                                                    </div>
+                                                                                                                                                </div>
+                                                                                                                                                <div class="col-lg-4 col-md-6">
+                                                                                                                                                    <div class="feature-item">
+                                                                                                                                                        <div class="obri-icon"><img src="assets/images/icon12@3x.png" alt="Advanced System" width="70">
+                                                                                                                                                        </div>
+                                                                                                                                                        <h2>Advanced System</h2>
+                                                                                                                                                        <p>Cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Donec quam
+                                                                                                                                                            felis, ultricies nec pellentesque.</p>
+                                                                                                                                                    </div>
+                                                                                                                                                </div>
                                                                                                                                             </div>
                                                                                                                                         </div>
-                                                                                                                                    </div>
-                                                                                                                                </div>
-                                                                                                                            </section> -->
+                                                                                                                                    </section> -->
 
     <!-- Obri Works -->
     <section class="obri-works" id="section3">
@@ -296,12 +296,12 @@
             <div class="subscribe-wrap">
                 <h2 class="section-title">Join the 500+ customers that are already using our app</h2>
                 <!-- <p>Subscribe our newsletter to recive the latest news and exclusive offers every week.</p>
-                                        <form>
-                                            <div class="form-group">
-                                                <input type="email" class="form-control" id="email" placeholder="Type your email here....">
-                                            </div>
-                                            <input type="submit" class="obri-btn" name="Submit" value="subscribe now!">
-                                        </form> -->
+                                                <form>
+                                                    <div class="form-group">
+                                                        <input type="email" class="form-control" id="email" placeholder="Type your email here....">
+                                                    </div>
+                                                    <input type="submit" class="obri-btn" name="Submit" value="subscribe now!">
+                                                </form> -->
             </div>
         </div>
     </section>
@@ -327,9 +327,12 @@
                 <div class="col-md-4">
                     <div class="obri-social">
                         <span>Get social</span>
-                        <a href="#0"><i class="fa fa-facebook" aria-hidden="true"></i></a>
-                        <a href="#0"><i class="fa fa-twitter" aria-hidden="true"></i></a>
-                        <a href="#0"><i class="fa fa-instagram" aria-hidden="true"></i></a>
+                        <a href="https://www.facebook.com/share/16rjwxhBUW/?mibextid=wwXIfr"><i class="fab fa-facebook"
+                                aria-hidden="true"></i></a>
+                        <a href="https://www.tiktok.com/@sheltipo0pk?_t=ZS-90Wcncy0L22&_r=1"><i class="fab fa-tiktok"
+                                aria-hidden="true"></i></a>
+                        <a href="https://www.instagram.com/shelterbaze?igsh=MWExNGlibTJjdXRoOQ%3D%3D&utm_source=qr"><i
+                                class="fab fa-instagram" aria-hidden="true"></i></a>
                     </div>
                 </div>
             </div>
