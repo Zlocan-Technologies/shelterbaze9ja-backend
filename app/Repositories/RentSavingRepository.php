@@ -215,7 +215,7 @@ class RentSavingRepository
         $user = $request->user();
         $saving = RentSaving::where('user_id', $user->id)->findOrFail($request->savings_id);
 
-        if($saving->target_amount > 100 && $request->amount < 100) {
+        if(($saving->target_amount - $saving->current_amount) > 100 && $request->amount < 100) {
             return ApiResponse::respond(
                 status: false,
                 statusCode: 400,
