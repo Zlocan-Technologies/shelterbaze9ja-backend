@@ -88,9 +88,14 @@ class RentPaymentRepository
         $endDate = $startDate->copy()->addMonths($request->rental_period_months)->subDay();
 
         // Calculate amounts based on rental period
-        $monthlyRent = $property->rent_amount;
-        $rentAmount = $monthlyRent * ($request->rental_period_months);
-        $commission = $property->shelterbaze_commission * ($request->rental_period_months);
+        // Note: rent_amount is YEARLY, so we calculate based on proportion of year
+        $yearlyRent = $property->rent_amount;
+        $yearlyCommission = $property->shelterbaze_commission;
+        $monthlyRent = $yearlyRent / 12;
+
+        // Calculate rent for the rental period (proportional to the year)
+        $rentAmount = $monthlyRent * $request->rental_period_months;
+        $commission = ($yearlyCommission / 12) * $request->rental_period_months;
         $totalAmount = $rentAmount + $commission;
 
         // Apply discount for long-term rentals (12+ months get 5% discount)
@@ -170,6 +175,7 @@ class RentPaymentRepository
                     'note' => 'Upload payment proof after making transfer'
                 ],
                 'rental_details' => [
+                    'yearly_rent' => $yearlyRent,
                     'monthly_rent' => $monthlyRent,
                     'total_months' => $request->rental_period_months,
                     'rent_amount' => $rentAmount,
@@ -204,9 +210,13 @@ class RentPaymentRepository
             $endDate = $startDate->copy()->addMonths((int)$request->rental_period_months)->subDay();
 
             // Calculate amounts based on rental period
-            $monthlyRent = $property->rent_amount;
-            $rentAmount = $monthlyRent * ($request->rental_period_months);
-            $commission = $property->shelterbaze_commission * ($request->rental_period_months);
+            // Note: rent_amount is YEARLY, so we calculate based on proportion of year
+            $yearlyRent = $property->rent_amount;
+            $yearlyCommission = $property->shelterbaze_commission;
+            $monthlyRent = $yearlyRent / 12;
+
+            $rentAmount = $monthlyRent * $request->rental_period_months;
+            $commission = ($yearlyCommission / 12) * $request->rental_period_months;
             $totalAmount = $rentAmount + $commission;
 
             // Apply discount for long-term rentals (12+ months get 5% discount)
@@ -749,9 +759,11 @@ class RentPaymentRepository
 
         // Calculate amounts (use proposed rent or current property rate)
         $property = $agreement->property;
-        $newRentAmount = $request->proposed_rent_amount ?? $property->rent_amount;
-        $rentAmount = $newRentAmount * $request->renewal_period_months;
-        $commission = ($newRentAmount * 0.10) * $request->renewal_period_months; // 10% commission
+        $newYearlyRent = $request->proposed_rent_amount ?? $property->rent_amount;
+        $newMonthlyRent = $newYearlyRent / 12;
+
+        $rentAmount = $newMonthlyRent * $request->renewal_period_months;
+        $commission = ($newYearlyRent * 0.10 / 12) * $request->renewal_period_months; // 10% commission
         $totalAmount = $rentAmount + $commission;
 
         // Apply renewal discount (5% discount for returning tenants)

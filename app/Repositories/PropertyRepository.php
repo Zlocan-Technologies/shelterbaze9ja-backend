@@ -31,7 +31,15 @@ class PropertyRepository
     public function getAllProperties(Request $request)
     {
         $properties = QueryBuilder::for(Property::class)
-            ->with(['landlord:id,first_name,last_name', 'agent:id,first_name,last_name', 'media', 'favorites'])
+            ->with([
+                'landlord:id,first_name,last_name',
+                'agent:id,first_name,last_name',
+                'media',
+                'favorites',
+                'verifications' => function ($query) {
+                    $query->latest()->limit(1);
+                }
+            ])
             ->allowedFilters([
                 'property_type',
                 'state',
@@ -86,9 +94,11 @@ class PropertyRepository
             $properties->getCollection()->transform(function ($property) use ($userId) {
                 $property->is_favorited = $property->isFavoritedBy($userId);
                 $property->has_paid_engagement_fee = $property->hasUserPaidEngagementFee($userId);
-                $property->agent_review = $property->verifications->pluck('verification_notes')->flatten()->first() ?? null;
 
+                // Add verification data if exists
+                $property->verification = $property->verifications->first() ?? null;
                 unset($property->verifications);
+
                 return $property;
             });
         }

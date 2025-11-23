@@ -98,9 +98,39 @@ class RentalAgreement extends Model
         return now()->diffInDays($this->agreement_end_date, false);
     }
 
+    /**
+     * Get the rental period in months
+     */
+    public function getRentalPeriodMonthsAttribute()
+    {
+        return max(1, $this->agreement_start_date->diffInMonths($this->agreement_end_date));
+    }
+
+    /**
+     * Get monthly rent amount
+     * Note: rent_amount in DB is the total for the rental period
+     */
+    public function getMonthlyRentAttribute()
+    {
+        return $this->rent_amount / $this->rental_period_months;
+    }
+
+    /**
+     * Get monthly commission amount
+     * Note: shelterbaze_commission in DB is the total for the rental period
+     */
+    public function getMonthlyCommissionAttribute()
+    {
+        return $this->shelterbaze_commission / $this->rental_period_months;
+    }
+
+    /**
+     * Get monthly total payment
+     * Note: total_amount in DB is the total for the rental period
+     */
     public function getMonthlyPaymentAttribute()
     {
-        return $this->total_amount / 12; // Assuming yearly rent
+        return $this->total_amount / $this->rental_period_months;
     }
 
     public function getTotalPaidAttribute()

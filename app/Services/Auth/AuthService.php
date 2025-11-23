@@ -182,13 +182,21 @@ class AuthService implements IAuthService
     public function getUserProfile(Request $request)
     {
         $user = $request->user();
+
+        // Get admin user
+        $adminUser = User::where('role', User::ROLE_ADMIN)->first();
+
+        $userData = [
+            'user' => $user->load([
+                'profile','wallet'
+            ]),
+            'admin' => $adminUser ? $adminUser->load('profile') : null,
+            'unreadNotificationsCount' => $user->unreadNotificationsCount,
+            'is_admin' => $user->isAdmin()
+        ];
+
         return ApiResponse::respond(
-            data: [
-                'user' => $user->load([
-                    'profile','wallet'
-                ]),
-                'unreadNotificationsCount' => $user->unreadNotificationsCount
-            ],
+            data: $userData,
             message: "Success!",
         );
     }
