@@ -53,6 +53,20 @@ class EditAgent extends EditRecord
         $user = $this->record;
         $fileUploadService = new FileUploadService();
 
+        // Check if agent account status changed to active and set ID card expiry
+        if ($user->role === User::ROLE_AGENT &&
+            isset($this->data['account_status']) &&
+            $this->data['account_status'] === 'active' &&
+            $user->wasChanged('account_status')) {
+
+            // Get expiry years from env, default to 1 year
+            $expiryYears = (int) env('ID_CARD_EXPIRY_YEARS', 1);
+            $expiryDate = now()->addYears($expiryYears);
+
+            // Set the expiry date in profile data
+            $profileData['id_card_expiry_date'] = $expiryDate;
+        }
+
         // Check if we have profile data in the nested format
         if (isset($this->data['profile']) && is_array($this->data['profile'])) {
             $profileFormData = $this->data['profile'];

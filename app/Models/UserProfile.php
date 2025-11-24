@@ -10,12 +10,13 @@ class UserProfile extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'nin_number', 'nin_selfie_url', 'address', 
-        'state', 'lga', 'agent_id', 'id_card_url', 'verification_documents', 'profile_picture'
+        'user_id', 'nin_number', 'nin_selfie_url', 'address',
+        'state', 'lga', 'agent_id', 'id_card_url', 'id_card_expiry_date', 'verification_documents', 'profile_picture'
     ];
 
     protected $casts = [
-        'verification_documents' => 'array'
+        'verification_documents' => 'array',
+        'id_card_expiry_date' => 'datetime'
     ];
 
     // Relationships

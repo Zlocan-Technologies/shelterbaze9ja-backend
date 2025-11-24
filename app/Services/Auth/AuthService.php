@@ -9,6 +9,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Otp\VerifyOtpRequest;
 use App\Models\AuditLog;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\Otp\OtpService;
@@ -186,13 +187,19 @@ class AuthService implements IAuthService
         // Get admin user
         $adminUser = User::where('role', User::ROLE_ADMIN)->first();
 
+        // Get fee percentages from system settings
+        $commissionPercentage = SystemSetting::getTenantCommissionPercentage();
+        $managementFeePercentage = SystemSetting::getLandlordManagementFeePercentage();
+
         $userData = [
             'user' => $user->load([
                 'profile','wallet'
             ]),
             'admin' => $adminUser ? $adminUser->load('profile') : null,
             'unreadNotificationsCount' => $user->unreadNotificationsCount,
-            'is_admin' => $user->isAdmin()
+            'is_admin' => $user->isAdmin(),
+            'tenant_commission_percentage' => $commissionPercentage,
+            'landlord_management_fee_percentage' => $user->isLandlord() ? $managementFeePercentage : null
         ];
 
         return ApiResponse::respond(

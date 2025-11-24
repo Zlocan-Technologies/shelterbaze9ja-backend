@@ -217,15 +217,25 @@ class RentPaymentRepository
 
             $rentAmount = $monthlyRent * $request->rental_period_months;
             $commission = ($yearlyCommission / 12) * $request->rental_period_months;
-            $totalAmount = $rentAmount + $commission;
 
             // Apply discount for long-term rentals (12+ months get 5% discount)
             $discount = 0;
             if ($request->rental_period_months >= 12) {
                 $discount = $rentAmount * 0.05; // 5% discount on rent amount
                 $rentAmount -= $discount;
-                $totalAmount = $rentAmount + $commission;
             }
+
+            // Get fee percentages from system settings
+            $commissionPercentage = SystemSetting::getTenantCommissionPercentage();
+            $managementFeePercentage = SystemSetting::getLandlordManagementFeePercentage();
+
+            // Calculate commission (paid by tenant, added to rent)
+            $commission = $rentAmount * ($commissionPercentage / 100);
+            $totalAmount = $rentAmount + $commission;
+
+            // Calculate management fee (deducted from landlord's rent)
+            $managementFee = $rentAmount * ($managementFeePercentage / 100);
+            $landlordPayout = $rentAmount - $managementFee;
 
             //create new agreement
             $agreement = RentalAgreement::create([
@@ -235,6 +245,8 @@ class RentPaymentRepository
                 'agent_id' => $property->agent_id,
                 'rent_amount' => $rentAmount,
                 'shelterbaze_commission' => $commission,
+                'management_fee' => $managementFee,
+                'landlord_payout' => $landlordPayout,
                 'total_amount' => $totalAmount,
                 'agreement_start_date' => $startDate,
                 'agreement_end_date' => $endDate,
@@ -763,13 +775,22 @@ class RentPaymentRepository
         $newMonthlyRent = $newYearlyRent / 12;
 
         $rentAmount = $newMonthlyRent * $request->renewal_period_months;
-        $commission = ($newYearlyRent * 0.10 / 12) * $request->renewal_period_months; // 10% commission
-        $totalAmount = $rentAmount + $commission;
 
         // Apply renewal discount (5% discount for returning tenants)
         $renewalDiscount = $rentAmount * 0.05;
         $rentAmount -= $renewalDiscount;
+
+        // Get fee percentages from system settings
+        $commissionPercentage = SystemSetting::getTenantCommissionPercentage();
+        $managementFeePercentage = SystemSetting::getLandlordManagementFeePercentage();
+
+        // Calculate commission (paid by tenant, added to rent)
+        $commission = $rentAmount * ($commissionPercentage / 100);
         $totalAmount = $rentAmount + $commission;
+
+        // Calculate management fee (deducted from landlord's rent)
+        $managementFee = $rentAmount * ($managementFeePercentage / 100);
+        $landlordPayout = $rentAmount - $managementFee;
 
         // Create renewal agreement
         $renewal = RentalAgreement::create([
@@ -779,6 +800,8 @@ class RentPaymentRepository
             'agent_id' => $property->agent_id,
             'rent_amount' => $rentAmount,
             'shelterbaze_commission' => $commission,
+            'management_fee' => $managementFee,
+            'landlord_payout' => $landlordPayout,
             'total_amount' => $totalAmount,
             'agreement_start_date' => $startDate,
             'agreement_end_date' => $endDate,

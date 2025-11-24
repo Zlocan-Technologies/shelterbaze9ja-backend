@@ -11,13 +11,15 @@ class RentalAgreement extends Model
 
     protected $fillable = [
         'property_id', 'tenant_id', 'landlord_id', 'agent_id',
-        'rent_amount', 'shelterbaze_commission', 'total_amount',
+        'rent_amount', 'shelterbaze_commission', 'management_fee', 'landlord_payout', 'total_amount',
         'agreement_start_date', 'agreement_end_date', 'status', 'terms_conditions'
     ];
 
     protected $casts = [
         'rent_amount' => 'decimal:2',
         'shelterbaze_commission' => 'decimal:2',
+        'management_fee' => 'decimal:2',
+        'landlord_payout' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'agreement_start_date' => 'date',
         'agreement_end_date' => 'date'

@@ -76,4 +76,20 @@ class SystemSetting extends Model
     {
         return self::castValue($this->value, $this->type);
     }
+
+    /**
+     * Get tenant commission percentage
+     */
+    public static function getTenantCommissionPercentage()
+    {
+        return (float) self::get('tenant_commission_percentage', env('TENANT_COMMISSION_PERCENTAGE', 10));
+    }
+
+    /**
+     * Get landlord management fee percentage
+     */
+    public static function getLandlordManagementFeePercentage()
+    {
+        return (float) self::get('landlord_management_fee_percentage', env('LANDLORD_MANAGEMENT_FEE_PERCENTAGE', 10));
+    }
 }

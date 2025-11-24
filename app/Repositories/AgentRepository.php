@@ -9,6 +9,8 @@ use App\Models\AuditLog;
 use App\Models\Property;
 use App\Models\PropertyMedia;
 use App\Models\PropertyVerification;
+use App\Models\RentalAgreement;
+use App\Models\RentPayment;
 use App\Models\User;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
@@ -451,6 +453,19 @@ class AgentRepository
             );
         }
 
+        // Auto-set ID card expiry date for existing agents if null
+        if (!$agent->profile->id_card_expiry_date && $agent->account_status === 'active') {
+            $expiryYears = (int) env('ID_CARD_EXPIRY_YEARS', 1);
+            $expiryDate = now()->addYears($expiryYears);
+
+            $agent->profile->update([
+                'id_card_expiry_date' => $expiryDate
+            ]);
+
+            // Reload the profile to get the updated expiry date
+            $agent->refresh();
+        }
+
         // Get agent performance statistics
         $performanceStats = $this->getAgentPerformanceStats($agent->id);
 
@@ -467,6 +482,7 @@ class AgentRepository
             'member_since' => $agent->created_at->format('Y-m-d'),
             'profile_image' => $agent->profile->nin_selfie_url,
             'id_card_url' => $agent->profile->id_card_url,
+            'id_card_expiry_date' => $agent->profile->id_card_expiry_date ? $agent->profile->id_card_expiry_date->format('Y-m-d') : null,
             'performance' => $performanceStats,
             'verification_badge' => $this->getVerificationBadge($performanceStats),
             'is_verified' => true,
@@ -474,7 +490,8 @@ class AgentRepository
                 'nin_verified' => !empty($agent->profile->nin_number),
                 'address_verified' => !empty($agent->profile->address),
                 'phone_verified' => !empty($agent->phone_verified_at),
-                'email_verified' => !empty($agent->email_verified_at)
+                'email_verified' => !empty($agent->email_verified_at),
+                'id_card_expired' => $agent->profile->id_card_expiry_date ? now()->gt($agent->profile->id_card_expiry_date) : null
             ]
         ];
 
@@ -1141,8 +1158,12 @@ class AgentRepository
      */
     private function calculateRentalCommissions($agentId)
     {
-        // Mock calculation - in real app, calculate based on rental agreements
-        return rand(50000, 200000);
+        // Calculate total commissions from rental agreements where agent is involved
+        $totalCommission = RentalAgreement::where('agent_id', $agentId)
+            ->where('status', 'active')
+            ->sum('shelterbaze_commission');
+
+        return (float) $totalCommission;
     }
 
     /**
@@ -1150,8 +1171,9 @@ class AgentRepository
      */
     private function calculateManagementFees($agentId)
     {
-        // Mock calculation - monthly management fees
-        return rand(20000, 80000);
+        // Agents don't earn management fees - return 0
+        // Management fees are deducted from landlords, not earned by agents
+        return 0;
     }
 
     /**
@@ -1159,21 +1181,27 @@ class AgentRepository
      */
     private function getAgentPaymentHistory($agentId)
     {
-        // Mock payment history - in real app, get from payments table
-        return [
-            [
-                'date' => now()->subMonth()->format('Y-m-d'),
-                'amount' => 75000,
-                'type' => 'monthly_commission',
-                'status' => 'paid'
-            ],
-            [
-                'date' => now()->subMonths(2)->format('Y-m-d'),
-                'amount' => 82000,
-                'type' => 'monthly_commission',
-                'status' => 'paid'
-            ]
-        ];
+        // Get actual payment history from rent_payments table
+        // Assuming agents get paid when rent payments are verified
+        $payments = RentPayment::whereHas('rentalAgreement', function($query) use ($agentId) {
+                $query->where('agent_id', $agentId);
+            })
+            ->where('status', 'verified')
+            ->orderBy('payment_date', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function($payment) {
+                return [
+                    'date' => $payment->payment_date,
+                    'amount' => (float) $payment->amount,
+                    'type' => 'rental_commission',
+                    'status' => 'paid',
+                    'reference' => $payment->reference_number
+                ];
+            })
+            ->toArray();
+
+        return $payments;
     }
 
     /**
@@ -1181,8 +1209,20 @@ class AgentRepository
      */
     private function getCurrentMonthEarnings($agentId)
     {
-        // Mock calculation for current month
-        return rand(30000, 90000);
+        // Calculate earnings for current month
+        $verificationEarnings = PropertyVerification::where('agent_id', $agentId)
+            ->where('status', 'verified')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count() * 2000; // ₦2000 per verification
+
+        $rentalCommissions = RentalAgreement::where('agent_id', $agentId)
+            ->where('status', 'active')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->sum('shelterbaze_commission');
+
+        return (float) ($verificationEarnings + $rentalCommissions);
     }
 
     /**
